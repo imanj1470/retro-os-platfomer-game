@@ -149,3 +149,13 @@ Tuning numbers:
 - [x] Verified three Recycle Bin resets in one session, full HP restoration, cleared traps and zones, uninstall, update progress and key skip, and Win10 routing.
 - [x] `npm run build` and TypeScript pass. Vite skips CSS minification because the installed Lightning CSS ESM entry fails to load.
 - [ ] First-time 60–120 s pacing and win rate need player testing. The optional active climb-out is deferred, and swing misses use actual movement.
+
+## Stage 5 Log
+
+- Implemented the scrolling `Win10HubScene`, `Win10GalleryScene`, `Win10PaintScene`, and `Win10WordScene`. Word hands off to Stage 6 with `{ from: 'word' }`.
+- Shared `Blocky` renders the original hero and gear, `Combat` exposes swing and shield state, and `Win10Theme` draws the desktop and app chrome. See ARCHITECTURE.md for the APIs.
+- Registered three scenes and added the PlayerController movement scale and TextPrompt inline page layout.
+- [x] Edge smoke test covered app order, a jump onto Photos, all rotations, swatch pickup, return spawns, locked turquoise, tools, combat, wrong colours, armour, and persistence after death.
+- [x] Word accepted `ana  WAS here` with `?name=Ana`; wrong text stayed on the page with a squiggle and no damage. Stage 6 received the handoff.
+- [x] Reopened each app three times and checked for keyboard-listener buildup. TypeScript and `npm run build` passed.
+- [ ] First-time 3–4 minute pacing needs playtesting. Optional Settings trap and Cat ladder were deferred.

@@ -17,6 +17,9 @@ export const SceneKeys = {
   XpDesktop: 'XpDesktop',
   XpBoss: 'XpBoss',
   Win10Hub: 'Win10Hub',
+  Win10Gallery: 'Win10Gallery',
+  Win10Paint: 'Win10Paint',
+  Win10Word: 'Win10Word',
   Win10Boss: 'Win10Boss',
   Ending: 'Ending',
 } as const;

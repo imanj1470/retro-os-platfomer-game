@@ -12,6 +12,7 @@ export class TextPrompt {
   private label = '';
   private inputX = 0;
   private inputY = 0;
+  private pageWidth?: number;
   private resolve: ((value: string | null) => void) | null = null;
 
   private bgBox: Phaser.GameObjects.Graphics;
@@ -99,6 +100,7 @@ export class TextPrompt {
     maxLength?: number;
     placeholder?: string;
     terminal?: boolean;
+    page?: { x: number; y: number; width: number };
   }): Promise<string | null> {
     return new Promise((resolve) => {
       this._isOpen = true;
@@ -106,11 +108,12 @@ export class TextPrompt {
       this.maxLength = opts.maxLength ?? 50;
       this.placeholder = opts.placeholder ?? '';
       this.label = opts.label;
+      this.pageWidth = opts.page?.width;
       this.resolve = resolve;
 
       // Draw background
       this.bgBox.clear();
-      if (!opts.terminal) {
+      if (!opts.terminal && !opts.page) {
         this.bgBox.fillStyle(0x000000, 0.85);
         this.bgBox.fillRect(0, 0, this.scene.scale.width, this.scene.scale.height);
       }
@@ -120,14 +123,19 @@ export class TextPrompt {
       this.labelText.setText(opts.label).setOrigin(opts.terminal ? 0 : 0.5, 0)
         .setPosition(opts.terminal ? 88 : centerX, opts.terminal ? 230 : centerY - 40)
         .setFontSize(opts.terminal ? 20 : 18).setColor(opts.terminal ? '#75cf88' : '#aaaaaa');
-      this.inputX = opts.terminal ? this.labelText.x + this.labelText.width + 12 : centerX - 120;
-      this.inputY = opts.terminal ? 229 : centerY;
-      this.inputText.setPosition(this.inputX, this.inputY).setColor(opts.terminal ? '#b0ffbf' : '#ffffff');
-      this.caret.setColor(opts.terminal ? '#75cf88' : '#ffffff');
+      this.inputX = opts.page?.x ?? (opts.terminal ? this.labelText.x + this.labelText.width + 12 : centerX - 120);
+      this.inputY = opts.page?.y ?? (opts.terminal ? 229 : centerY);
+      this.inputText.setPosition(this.inputX, this.inputY).setStyle({
+        fontFamily: opts.page ? 'Georgia, serif' : 'monospace', fontSize: opts.page ? '26px' : '22px',
+        strokeThickness: opts.page ? 0 : 3, wordWrap: { width: opts.page?.width ?? null },
+        color: opts.terminal ? '#b0ffbf' : '#ffffff',
+      });
+      this.caret.setText(opts.page ? '|' : '_').setColor(opts.page ? '#255aa4' : opts.terminal ? '#75cf88' : '#ffffff');
 
       // Update display
       this.updateDisplay();
       this.setVisible(true);
+      if (opts.page) this.labelText.setVisible(false);
 
       // Start caret blink
       this.caretTween = this.scene.tweens.add({
@@ -179,6 +187,14 @@ export class TextPrompt {
   private updateDisplay(): void {
     const display = this.currentText || this.placeholder;
     this.inputText.setText(display);
+    if (this.pageWidth !== undefined) {
+      this.inputText.setColor(this.currentText ? '#183047' : '#76869a');
+      const lines = this.inputText.getWrappedText(this.currentText);
+      const width = this.inputText.context.measureText(lines.at(-1) ?? '').width;
+      this.caret.setPosition(this.inputX + Math.min(width, this.pageWidth),
+        this.inputY + Math.max(0, lines.length - 1) * (this.inputText.height / Math.max(1, lines.length)));
+      return;
+    }
 
     // Position caret after text
     const textWidth = this.inputText.getBounds().width;

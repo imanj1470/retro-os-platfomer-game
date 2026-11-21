@@ -83,3 +83,11 @@ Gravity 600, jump −450, so max rise ≈ 165 px and max gap ≈ 220 px. Design 
 - `HUD`: `setLeft()`, `setRight()`, `showBanner()`, `hideBanner()`, `showBossBar()`, `setBossHp()`, `hideBossBar()`
 - `VanishingPlatform`: `createVanishingPlatform(scene, group, x, y, texture, opts?)`
 - `debug.ts`: `getDebugParams()` — parse `?level=`, `?god=1`, `?name=`
+
+## Stage 5 shared Win10 APIs
+
+- `Blocky.prepare(scene)` generates the original player textures. Spawn a `PlayerController` with `BLOCKY_TEXTURE`, then create `new Blocky(scene, player)`. Call `setGear(inventory)` after inventory changes and `update(time, swinging, shielding)` each frame to position and animate gear.
+- `new Combat(scene, player)` accepts `setGear(inventory)`. Call `update(delta, movementScale?)` during play for J/X and K/Shift. `swing()`, `isSwinging`, `hitbox`, `isShielding`, `blocks(fromX)`, and `reset()` cover attack checks, front-facing blocks, and respawn.
+- `Win10Theme.ts` exports `drawDesktop(scene, width)`, `drawWindow(scene, title, tint?)`, `appTexture(scene, icon)`, `WIN10_FLOOR`, `UI_FONT`, and `TURQUOISE`.
+- `Win10StageScene` supplies the three-heart HUD, checkpoint respawns, one-way platforms, inventory-backed gear, and app return positions. Word starts `Win10Boss` with `{ from: 'word' }`.
+- `PlayerController.setMoveSpeedScale(scale)` scales horizontal movement for shield and proximity effects. `TextPrompt.open({ page: { x, y, width }, ... })` supports inline serif input, a ghost placeholder, and wrapped lines.

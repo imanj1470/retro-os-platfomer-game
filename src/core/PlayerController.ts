@@ -25,6 +25,7 @@ export class PlayerController {
   private keyShift: Phaser.Input.Keyboard.Key;
 
   private moveSpeed: number;
+  private moveSpeedScale = 1;
   private jumpVelocity: number;
 
   private controlsEnabled = true;
@@ -126,10 +127,10 @@ export class PlayerController {
 
     // Horizontal movement
     if (this.cursors.left.isDown || this.keyA.isDown) {
-      this.sprite.setVelocityX(-this.moveSpeed);
+      this.sprite.setVelocityX(-this.moveSpeed * this.moveSpeedScale);
       this.sprite.setFlipX(true);
     } else if (this.cursors.right.isDown || this.keyD.isDown) {
-      this.sprite.setVelocityX(this.moveSpeed);
+      this.sprite.setVelocityX(this.moveSpeed * this.moveSpeedScale);
       this.sprite.setFlipX(false);
     } else {
       this.sprite.setVelocityX(0);
@@ -161,6 +162,10 @@ export class PlayerController {
   public reset(x: number, y: number): void {
     (this.sprite.body as Phaser.Physics.Arcade.Body).reset(x, y);
     this.sprite.setVelocity(0, 0);
+  }
+
+  public setMoveSpeedScale(scale: number): void {
+    this.moveSpeedScale = scale;
   }
 
   public setControlsEnabled(on: boolean): void {
