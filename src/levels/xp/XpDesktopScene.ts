@@ -12,6 +12,15 @@ const APPS = [
 const WINDOW_HEIGHT = 370;
 const LADDER_X = 385;
 const LADDER_TOP = 278;
+const XP_FACTS = [
+  'Windows XP launched on October 25, 2001.',
+  'This wallpaper is called Bliss. The hill is in California.',
+  'XP launched in Home and Professional editions.',
+  'Remote Assistance let someone help you from another PC.',
+  'XP Professional x64 Edition arrived in 2005.',
+  'Service Pack 3 came out in 2008.',
+  'Microsoft ended regular Windows XP support in April 2014.',
+];
 
 export default class XpDesktopScene extends XpScene {
   private app?: AppWindow;
@@ -19,6 +28,8 @@ export default class XpDesktopScene extends XpScene {
   private appIndex = 0;
   private escaped = 0;
   private chaseGrace = 0;
+  private facts: string[] = [];
+  private timeUntilFact = 6500;
   private exitLabel!: Phaser.GameObjects.Text;
   private remaining = 0;
   private finished = false;
@@ -33,6 +44,8 @@ export default class XpDesktopScene extends XpScene {
     this.appIndex = 0;
     this.escaped = 0;
     this.chaseGrace = 0;
+    this.facts = Phaser.Utils.Array.Shuffle([...XP_FACTS]);
+    this.timeUntilFact = 6500;
     this.finished = false;
     this.desktopColliders = [];
     this.sideways = ['LEFT', 'RIGHT', 'A', 'D'].map((key) => this.input.keyboard!.addKey(key));
@@ -165,6 +178,7 @@ export default class XpDesktopScene extends XpScene {
         }
       }
     }
+    this.shareFact(delta);
     const onLadder = Math.abs(player.x - LADDER_X) < 55 &&
       player.y > LADDER_TOP - 40 && player.y < LADDER_TOP + 194;
     const movingSideways = this.sideways.some((key) => key.isDown);
@@ -175,6 +189,15 @@ export default class XpDesktopScene extends XpScene {
         (this.player.isHeld('up') && body.velocity.y >= 0 && body.bottom > LADDER_TOP + 2))) {
       this.player.setClimbing(true);
     }
+  }
+
+  private shareFact(delta: number): void {
+    this.timeUntilFact -= delta;
+    if (this.timeUntilFact > 0 || !this.helper.isIdle) return;
+    const fact = this.facts.pop();
+    if (!fact) return;
+    void this.helper.say(`Rover: ${fact}`, { holdMs: 3800 });
+    this.timeUntilFact = Phaser.Math.Between(12000, 18000);
   }
 
   private moveCursor(x: number, y: number, speed: number, delta: number): void {

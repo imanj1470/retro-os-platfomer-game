@@ -1,9 +1,9 @@
-﻿import Phaser from 'phaser';
+import Phaser from 'phaser';
 import { ensureTexture } from '../../../core/art';
 import { sfx } from '../../../core/sfx';
 import { XP_FLOOR } from '../shared/XpScene';
 
-export const BUDDY_COLORS = [0x28704a, 0x57a635, 0xf4d253, 0xffeea2, 0x3568af];
+export const BUDDY_COLORS = [0x55317d, 0x8b53bf, 0xc49be7, 0xf3e5ff, 0x3568af];
 export const ANCHORS = [200, 600];
 export const ANCHOR_Y = 102;
 export const BUDDY_FLOOR = XP_FLOOR - 36;
@@ -30,13 +30,13 @@ export class BuddyWare {
 
   constructor(scene: Phaser.Scene) {
     ensureTexture(scene, 'buddyware-ape', 80, 88, (g) => {
-      g.fillStyle(0x28704a).fillEllipse(17, 55, 21, 43).fillEllipse(63, 55, 21, 43)
+      g.fillStyle(0x55317d).fillEllipse(17, 55, 21, 43).fillEllipse(63, 55, 21, 43)
         .fillEllipse(26, 76, 25, 15).fillEllipse(54, 76, 25, 15)
         .fillCircle(15, 33, 11).fillCircle(65, 33, 11);
-      g.fillStyle(0x57a635).fillEllipse(40, 58, 50, 43).fillEllipse(40, 35, 52, 46);
-      g.fillStyle(0xf4d253).fillEllipse(40, 61, 26, 31).fillEllipse(40, 39, 43, 31);
-      g.fillStyle(0xffeea2).fillCircle(31, 31, 8).fillCircle(49, 31, 8);
-      g.fillStyle(0x203e25).fillCircle(33, 31, 2.5).fillCircle(51, 31, 2.5).fillEllipse(40, 43, 26, 13);
+      g.fillStyle(0x8b53bf).fillEllipse(40, 58, 50, 43).fillEllipse(40, 35, 52, 46);
+      g.fillStyle(0xc49be7).fillEllipse(40, 61, 26, 31).fillEllipse(40, 39, 43, 31);
+      g.fillStyle(0xf3e5ff).fillCircle(31, 31, 8).fillCircle(49, 31, 8);
+      g.fillStyle(0x2b1b40).fillCircle(33, 31, 2.5).fillCircle(51, 31, 2.5).fillEllipse(40, 43, 26, 13);
       g.fillStyle(0xffffff).fillRoundedRect(30, 39, 20, 4, 2);
       g.fillStyle(0x3568af).fillRoundedRect(12, 6, 56, 17, 4);
       g.fillStyle(0xe5f4ff).fillRoundedRect(29, 11, 27, 7, 2);
@@ -129,7 +129,7 @@ export class BuddyWare {
         const mix = Math.min(1, t / approach);
         this.place(Phaser.Math.Linear(this.originX, swingX, mix), Phaser.Math.Linear(this.originY, swingY, mix));
         this.sprite.setAngle(angle * 24 * mix);
-        this.cable.clear().lineStyle(4, 0x345038).lineBetween(anchor, ANCHOR_Y, this.sprite.x, this.sprite.y - 34);
+        this.cable.clear().lineStyle(4, 0x4b3c62).lineBetween(anchor, ANCHOR_Y, this.sprite.x, this.sprite.y - 34);
         if (swingTime >= 2 * legMs) {
           sfx('jump');
           this.targetX = Phaser.Math.Clamp(playerX, 43, 757);
@@ -142,7 +142,7 @@ export class BuddyWare {
         const flight = 1200 / speed;
         if (t < 400) {
           this.sprite.setScale(1.1, 0.77);
-          this.cable.clear().lineStyle(3, 0xf4d253).strokeEllipse(this.targetX, this.targetY + 34, 66, 15);
+          this.cable.clear().lineStyle(3, 0xc49be7).strokeEllipse(this.targetX, this.targetY + 34, 66, 15);
         } else {
           this.cable.clear();
           const p = Math.min(1, (t - 400) / flight);
@@ -163,9 +163,9 @@ export class BuddyWare {
         this.sprite.setScale(1 + 0.2 * reach, 1);
         this.place(Phaser.Math.Linear(this.originX, this.targetX, p), Phaser.Math.Linear(this.originY, BUDDY_FLOOR, p));
         const handX = this.sprite.x + Math.sign(this.targetX - this.originX) * (24 + 20 * reach);
-        this.cable.clear().lineStyle(9, 0x28704a)
+        this.cable.clear().lineStyle(9, 0x55317d)
           .lineBetween(this.sprite.x, this.sprite.y + 4, handX, this.sprite.y + 6)
-          .fillStyle(0xf4d253).fillCircle(handX, this.sprite.y + 6, 6);
+          .fillStyle(0xc49be7).fillCircle(handX, this.sprite.y + 6, 6);
         if (t >= dash + (this.grabContact ? 0 : 400)) {
           this.grab++;
           if (hits >= 2 && this.grab < 2) this.beginGrab(playerX);
