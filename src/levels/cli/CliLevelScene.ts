@@ -951,6 +951,9 @@ export default class CliLevelScene extends BaseLevelScene {
   private buildCage(trigger: { y: number; triggered: boolean; cage?: CageWall }): void {
     this.helper.sayOnce('cage-intro', 'It\'s drawing a box around you. Don\'t be inside the box.');
 
+    // Capture player position when cage starts building — this is where the cage forms
+    const cageCenterX = this.player.sprite.x;
+    const cageCenterY = this.player.sprite.y;
     const cageWidth = 120;
     const cageHeight = 80;
     const texts: Phaser.GameObjects.Text[] = [];
@@ -964,13 +967,13 @@ export default class CliLevelScene extends BaseLevelScene {
       callback: () => {
         if (charCount >= totalChars) {
           buildInterval.remove();
-          // Cage completed - check if player inside
+          // Cage completed - check if player is still inside the cage
           const px = this.player.sprite.x;
           const py = this.player.sprite.y;
-          const cageLeft = trigger.cage!.x - cageWidth / 2;
-          const cageRight = trigger.cage!.x + cageWidth / 2;
-          const cageTop = trigger.cage!.y - cageHeight / 2;
-          const cageBottom = trigger.cage!.y + cageHeight / 2;
+          const cageLeft = cageCenterX - cageWidth / 2;
+          const cageRight = cageCenterX + cageWidth / 2;
+          const cageTop = cageCenterY - cageHeight / 2;
+          const cageBottom = cageCenterY + cageHeight / 2;
 
           if (px > cageLeft && px < cageRight && py > cageTop && py < cageBottom) {
             this.hurtPlayer('cage');
@@ -999,8 +1002,8 @@ export default class CliLevelScene extends BaseLevelScene {
         text.setOrigin(0.5);
         text.setScrollFactor(1);
 
-        // Position along the cage perimeter
-        const perimeter = this.getCagePerimeterPosition(charCount, cageWidth, cageHeight, trigger.y);
+        // Position along the cage perimeter using captured center
+        const perimeter = this.getCagePerimeterPosition(charCount, cageWidth, cageHeight, cageCenterX, cageCenterY);
         text.setPosition(perimeter.x, perimeter.y);
         texts.push(text);
         charCount++;
@@ -1012,17 +1015,16 @@ export default class CliLevelScene extends BaseLevelScene {
       texts,
       building: true,
       completed: false,
-      y: trigger.y,
-      x: this.player.sprite.x,
+      y: cageCenterY,
+      x: cageCenterX,
       width: cageWidth,
     };
   }
 
-  private getCagePerimeterPosition(index: number, width: number, height: number, centerY: number): { x: number; y: number } {
+  private getCagePerimeterPosition(index: number, width: number, height: number, centerX: number, centerY: number): { x: number; y: number } {
     const step = 16;
     const halfW = width / 2;
     const halfH = height / 2;
-    const centerX = this.player.sprite.x;
 
     // Bottom edge
     const bottomChars = Math.floor(width / step);
