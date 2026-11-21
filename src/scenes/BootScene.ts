@@ -1,15 +1,17 @@
 import Phaser from 'phaser';
+import { SceneKeys } from '../core/constants';
+import { ensureTexture } from '../core/art';
+import { setPlayerName } from '../core/state';
+import { getDebugParams } from '../core/debug';
 
 export default class BootScene extends Phaser.Scene {
   constructor() {
-    super({ key: 'BootScene' });
+    super({ key: SceneKeys.Boot });
   }
 
   preload() {
-    // Loading background
     this.cameras.main.setBackgroundColor('#1a1a2e');
 
-    // Loading progress bar
     const width = this.scale.width;
     const height = this.scale.height;
     const progressBar = this.add.graphics();
@@ -38,12 +40,39 @@ export default class BootScene extends Phaser.Scene {
   }
 
   create() {
-    // Generate procedural fallback textures so sprites are always visible,
-    // even if the loaded PNG files are too small or missing
+    // Generate procedural fallback textures
     this.generateProceduralTextures();
 
-    // Transition to the main game scene
-    this.scene.start('PlayScene');
+    // Generate era-specific textures
+    this.generateEraTextures();
+
+    // Set player name from debug params
+    const debug = getDebugParams();
+    if (debug.name) {
+      setPlayerName(this, debug.name);
+    }
+
+    // Route to the correct scene
+    const startScene = debug.level ?? SceneKeys.Cli;
+    this.scene.start(startScene);
+  }
+
+  private generateEraTextures(): void {
+    // Icon generic
+    ensureTexture(this, 'icon-generic', 48, 48, (g) => {
+      g.fillStyle(0x888888, 1);
+      g.fillRect(0, 0, 48, 48);
+      g.fillStyle(0xaaaaaa, 1);
+      g.fillRect(4, 4, 40, 40);
+    });
+
+    // Glyph block
+    ensureTexture(this, 'glyph-block', 32, 32, (g) => {
+      g.fillStyle(0x444444, 1);
+      g.fillRect(0, 0, 32, 32);
+      g.fillStyle(0x666666, 1);
+      g.fillRect(4, 4, 24, 24);
+    });
   }
 
   private generateProceduralTextures(): void {

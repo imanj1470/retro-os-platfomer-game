@@ -1,18 +1,13 @@
 import Phaser from 'phaser';
-import BootScene from '../scenes/BootScene';
-import PlayScene from '../scenes/PlayScene';
-
-const TILE_SIZE = 32;
-const BASE_WIDTH = 800;
-const BASE_HEIGHT = 600;
-const WORLD_WIDTH = 1600;
+import { sceneList } from '../core/sceneList';
+import { GAME_WIDTH, GAME_HEIGHT, PHYSICS } from '../core/constants';
 
 export function createGameConfig(): Phaser.Types.Core.GameConfig {
   return {
     type: Phaser.AUTO,
     parent: 'game',
-    width: BASE_WIDTH,
-    height: BASE_HEIGHT,
+    width: GAME_WIDTH,
+    height: GAME_HEIGHT,
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_BOTH,
@@ -20,12 +15,10 @@ export function createGameConfig(): Phaser.Types.Core.GameConfig {
     physics: {
       default: 'arcade',
       arcade: {
-        gravity: { x: 0, y: 600 },
+        gravity: { x: 0, y: PHYSICS.gravityY },
         debug: false,
       },
     },
-    scene: [BootScene, PlayScene],
+    scene: sceneList,
   };
 }
-
-export { TILE_SIZE, BASE_WIDTH, BASE_HEIGHT, WORLD_WIDTH };
