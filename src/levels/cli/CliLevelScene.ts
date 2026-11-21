@@ -703,6 +703,12 @@ export default class CliLevelScene extends BaseLevelScene {
       warning.destroy();
       bulletText.setVisible(true);
 
+      // Add a physics body so overlap detection works
+      this.physics.add.existing(bulletText);
+      const bulletBody = bulletText.body as Phaser.Physics.Arcade.Body;
+      bulletBody.setAllowGravity(false);
+      bulletBody.setImmovable(true);
+
       const bullet: TextBullet = {
         sprite: bulletText,
         warning,
