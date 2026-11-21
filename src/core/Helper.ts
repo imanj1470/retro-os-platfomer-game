@@ -54,13 +54,13 @@ export class Helper {
 
     // Text box background
     this.textBox = scene.add.graphics();
-    this.textBox.fillStyle(0x000000, 0.7);
+    this.textBox.fillStyle(skin === 'cli' ? 0x07140b : 0x000000, skin === 'cli' ? 1 : 0.7);
     this.textBox.fillRect(30, -10, boxWidth - 30, 60);
     this.container.add(this.textBox);
 
     // Text
     this.textObj = scene.add.text(35, -5, '', {
-      fontSize: '22px',
+      fontSize: skin === 'cli' ? '15px' : '22px',
       color: '#ffffff',
       fontFamily: 'monospace',
       stroke: '#000000',
@@ -84,13 +84,19 @@ export class Helper {
       });
     } else if (this.skin === 'xp') {
       ensureTexture(this.scene, 'helper-xp', 24, 24, (g) => {
-        // Magnifying glass
-        g.fillStyle(0xffcc00, 1);
-        g.fillCircle(10, 10, 8);
-        g.fillStyle(0xffffff, 0.5);
-        g.fillCircle(10, 10, 6);
-        g.lineStyle(2, 0x333333, 1);
-        g.lineBetween(15, 15, 22, 22);
+        g.fillStyle(0x75421e);
+        g.fillEllipse(5, 12, 7, 16);
+        g.fillEllipse(19, 12, 7, 16);
+        g.fillStyle(0xd69952);
+        g.fillEllipse(12, 11, 15, 17);
+        g.fillStyle(0xffdc9b);
+        g.fillEllipse(12, 16, 13, 9);
+        g.fillStyle(0x26190f);
+        g.fillCircle(9, 10, 1.5);
+        g.fillCircle(15, 10, 1.5);
+        g.fillEllipse(12, 15, 6, 4);
+        g.fillStyle(0xc43636);
+        g.fillRoundedRect(8, 20, 8, 3, 1);
       });
     } else {
       ensureTexture(this.scene, 'helper-win10', 24, 24, (g) => {
@@ -150,6 +156,9 @@ export class Helper {
   }
 
   public update(playerX: number, playerY: number): void {
+    if (this.skin === 'cli') {
+      this.container.x = playerX < this.scene.scale.width / 2 ? this.scene.scale.width - 336 : 24;
+    }
     // Check proximity hints
     for (const hint of this.proximityHints) {
       if (hint.shown) continue;

@@ -83,6 +83,10 @@ export class PlayerController {
     return this.sprite.flipX ? -1 : 1;
   }
 
+  public get isClimbing(): boolean {
+    return this.climbing;
+  }
+
   public update(delta: number): void {
     if (!this.controlsEnabled) return;
 
@@ -147,10 +151,8 @@ export class PlayerController {
     }
 
     // Jump to leave ladder
-    if (Phaser.Input.Keyboard.JustDown(this.cursors.up)
-      || Phaser.Input.Keyboard.JustDown(this.keyW)
-      || Phaser.Input.Keyboard.JustDown(this.keySpace)) {
-      this.climbing = false;
+    if (Phaser.Input.Keyboard.JustDown(this.keySpace)) {
+      this.setClimbing(false);
       this.sprite.setVelocityY(this.jumpVelocity);
       sfx('jump');
     }

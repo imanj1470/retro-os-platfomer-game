@@ -33,6 +33,9 @@ export abstract class BaseLevelScene extends Phaser.Scene {
   public get sceneKey(): SceneKey { return this._sceneKey; }
 
   init(): void {
+    this.isPaused = false;
+    this.isFading = false;
+    this.isInvulnerable = false;
     this.godMode = getDebugParams().godMode;
     // Initialize keys once per scene
     const kb = this.input.keyboard!;
@@ -66,7 +69,9 @@ export abstract class BaseLevelScene extends Phaser.Scene {
     if (this.isInvulnerable) return;
 
     const result = this.onHurt(source);
+    const remaining = this.playerHitRemaining;
     if (result === 'dead') {
+      if (remaining !== undefined) emitGame('player-hit', { level: this.levelId, remaining });
       this.killPlayer(source);
       return;
     }
@@ -88,7 +93,7 @@ export abstract class BaseLevelScene extends Phaser.Scene {
 
     emitGame('player-hit', {
       level: this.levelId,
-      remaining: 1, // placeholder
+      remaining: remaining ?? 1,
     });
   }
 
@@ -102,17 +107,24 @@ export abstract class BaseLevelScene extends Phaser.Scene {
 
     this.onDeath(reason);
 
-    // Respawn after fade
-    this.time.delayedCall(500, () => {
+    this.time.delayedCall(this.respawnDelay, () => {
       this.player.reset(this.checkpointX, this.checkpointY);
       this.player.sprite.setAlpha(1);
       this.isInvulnerable = false;
+      this.onRespawn();
     });
   }
+
+  protected get respawnDelay(): number { return 500; }
+
+  protected onRespawn(): void {}
 
   protected onHurt(_source: string): 'survive' | 'dead' {
     return 'survive';
   }
+
+  // HP-based scenes can report their actual count, including a fatal hit.
+  protected get playerHitRemaining(): number | undefined { return undefined; }
 
   protected onDeath(_reason: string): void {
     // Default: fade and respawn at checkpoint (handled in killPlayer)

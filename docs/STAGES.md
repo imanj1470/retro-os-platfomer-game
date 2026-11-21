@@ -137,3 +137,15 @@ Tuning numbers:
 - Popup ad interval: 8–11s, despawn after 6s
 - Vanishing platform: 500ms vanish, 3000ms respawn
 - Notification ladder climb speed: 140 px/s (from PlayerController)
+
+## Stage 4 Log
+
+- `XpBossScene.ts` and `boss/BuddyWare.ts` add an original green-and-yellow ape, five attack states, three-hit uninstall, and the Windows 10 upgrade.
+- `XpDesktopScene.ts` requires one escape. Reaching Outlook again advances the level. Fresh pointer contact starts another trap after a 1.3 s grace period.
+- Stage 3 reuse includes wall-free `AppWindow.closeNow(body)` traps and the shared Recycle Bin sequence, with a Floppy skin and a cumulative death counter for the boss.
+- `BaseLevelScene.playerHitRemaining` lets HP-based levels publish current HP on nonfatal and fatal hits.
+- Tuning uses an 800 ms trap, 3 s cooldown per icon, 1 s hazard telegraph, 4 s hazard duration, and a 3 s skippable update.
+- [x] Edge smoke test covered direct boss entry, intro control lock, all five states, trap miss, guaranteed taunt hits, cooldown, and three boss-hit events.
+- [x] Verified three Recycle Bin resets in one session, full HP restoration, cleared traps and zones, uninstall, update progress and key skip, and Win10 routing.
+- [x] `npm run build` and TypeScript pass. Vite skips CSS minification because the installed Lightning CSS ESM entry fails to load.
+- [ ] First-time 60–120 s pacing and win rate need player testing. The optional active climb-out is deferred, and swing misses use actual movement.

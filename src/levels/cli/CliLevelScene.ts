@@ -16,6 +16,9 @@ const CLI_WORLD_HEIGHT = 1800;
 const CLI_GREEN = '#33ff66';
 const CLI_DIM = '#1a8033';
 const CLI_BLACK = '#000000';
+const EXIT_X = 674;
+const EXIT_FLOOR = 176;
+const SAFE_TOP = 208;
 
 // Target word to spell
 const TARGET_WORD = 'start';
@@ -95,13 +98,12 @@ export default class CliLevelScene extends BaseLevelScene {
   private bulletInterval = 3000;
 
   // Phase
-  private phase: 'boot' | 'login' | 'pressenter' | 'playing' | 'exiting' = 'boot';
+  private phase: 'boot' | 'login' | 'pressenter' | 'playing' | 'command' | 'exiting' = 'boot';
   private playerName = 'Player';
 
   // Exit prompt
-  private exitPrompt!: Phaser.GameObjects.Text;
-  private exitPromptX = 680;
-  private exitPromptY = 60;
+  private exitStatus!: Phaser.GameObjects.Text;
+  private exitFrame!: Phaser.GameObjects.Rectangle;
 
   // Platforms group
   private platforms!: Phaser.Physics.Arcade.StaticGroup;
@@ -111,6 +113,15 @@ export default class CliLevelScene extends BaseLevelScene {
   }
 
   create(): void {
+    this.fallingLetters = [];
+    this.textBullets = [];
+    this.checkpoints = [];
+    this.bodyParts = [];
+    this.partsLost = 0;
+    this.floodRows = [];
+    this.floodActive = false;
+    this.floodPaused = false;
+    this.bulletInterval = 3000;
     // Setup world
     this.setupWorld(CLI_WORLD_WIDTH, CLI_WORLD_HEIGHT, 0x000000);
 
@@ -145,18 +156,7 @@ export default class CliLevelScene extends BaseLevelScene {
     // Create platforms
     this.createPlatforms();
 
-    // Create exit prompt (world object, top-right)
-    this.exitPrompt = this.add.text(
-      780,
-      this.exitPromptY,
-      'user@retro:~$ █',
-      {
-        fontSize: '18px',
-        color: CLI_GREEN,
-        fontFamily: 'monospace',
-      },
-    );
-    this.exitPrompt.setOrigin(1, 0);
+    this.createExit();
 
     // Create checkpoints
     this.createCheckpoints();
@@ -169,6 +169,21 @@ export default class CliLevelScene extends BaseLevelScene {
 
     // Start boot sequence
     this.startBootSequence();
+  }
+
+  private createExit(): void {
+    this.exitFrame = this.add.rectangle(EXIT_X, 103, 212, 84, 0x07140b).setStrokeStyle(1, 0x2c6840);
+    this.add.text(EXIT_X - 92, 74, 'GRAPHICAL SESSION', {
+      fontFamily: 'monospace', fontSize: '16px', fontStyle: 'bold', color: CLI_GREEN,
+    });
+    this.exitStatus = this.add.text(EXIT_X - 92, 107, '[ LOCKED ]  0/5', {
+      fontFamily: 'monospace', fontSize: '15px', color: '#83ae8b',
+    });
+
+    const ledge = this.add.rectangle(EXIT_X, EXIT_FLOOR + 4, 212, 8, 0x193c24)
+      .setStrokeStyle(1, 0x39914c);
+    this.physics.add.existing(ledge, true);
+    this.physics.add.collider(this.player.sprite, ledge);
   }
 
   private createCLITextures(): void {
@@ -314,10 +329,7 @@ export default class CliLevelScene extends BaseLevelScene {
       { x: 150, y: CLI_WORLD_HEIGHT - 1360, text: 'Checking dependencies...' },
       { x: 400, y: CLI_WORLD_HEIGHT - 1470, text: 'All packages up to date' },
       { x: 200, y: CLI_WORLD_HEIGHT - 1580, text: '[ OK ] Ready for X session' },
-      { x: 500, y: CLI_WORLD_HEIGHT - 1690, text: 'user@retro:~$ _' },
-
-      // Top platform near exit
-      { x: 600, y: 120, text: 'Welcome to Retro OS' },
+      { x: 450, y: 172, text: '[ OK ] Xorg ready' },
     ];
 
     for (const p of platformLines) {
@@ -355,12 +367,12 @@ export default class CliLevelScene extends BaseLevelScene {
     ];
 
     for (const cp of cpPositions) {
-      const text = this.add.text(cp.x, cp.y - 20, '[ OK ] checkpoint saved', {
-        fontSize: '14px',
+      const text = this.add.text(cp.x, cp.y - 52, '[ checkpoint ]', {
+        fontSize: '12px',
         color: CLI_DIM,
         fontFamily: 'monospace',
       });
-      text.setScrollFactor(1);
+      text.setOrigin(0.5).setVisible(false);
 
       this.checkpoints.push({ x: cp.x, y: cp.y, text, activated: false });
     }
@@ -372,6 +384,8 @@ export default class CliLevelScene extends BaseLevelScene {
 
   private startBootSequence(): void {
     this.phase = 'boot';
+    this.bootSkipped = false;
+    this.bootTexts = [];
     this.player.setControlsEnabled(false);
 
     // Black backdrop during boot (screen space)
@@ -415,7 +429,7 @@ export default class CliLevelScene extends BaseLevelScene {
     });
 
     // Any key skips boot
-    this.input.keyboard!.once('keydown-ANY', () => {
+    this.input.keyboard!.once('keydown', () => {
       if (this.phase === 'boot') {
         this.bootSkipped = true;
         this.showPressEnter();
@@ -441,7 +455,7 @@ export default class CliLevelScene extends BaseLevelScene {
     });
     enterText.setOrigin(0.5);
     enterText.setScrollFactor(0);
-    enterText.setDepth(500);
+    enterText.setDepth(710);
 
     // Blink
     this.tweens.add({
@@ -453,9 +467,10 @@ export default class CliLevelScene extends BaseLevelScene {
     });
 
     // Wait for Enter
-    this.input.keyboard!.once('keydown-ENTER', () => {
+    this.input.keyboard!.once('keydown-ENTER', (event: KeyboardEvent) => {
+      event.stopImmediatePropagation();
       enterText.destroy();
-      this.startLogin();
+      this.time.delayedCall(0, () => this.startLogin());
     });
   }
 
@@ -467,6 +482,10 @@ export default class CliLevelScene extends BaseLevelScene {
 
     this.phase = 'playing';
     this.player.setControlsEnabled(true);
+    this.add.rectangle(0, 0, GAME_WIDTH, 49, 0x061009).setOrigin(0).setScrollFactor(0).setDepth(950);
+    this.add.rectangle(0, 49, GAME_WIDTH, 1, 0x2c6840).setOrigin(0).setScrollFactor(0).setDepth(950);
+    this.updateLetterHUD();
+    this.updateBodyHUD();
 
     // Helper greeting
     this.helper.say(`Welcome back, ${this.playerName}. Arrows to move, ↑ to jump. Catch the falling letters.`, {
@@ -480,12 +499,15 @@ export default class CliLevelScene extends BaseLevelScene {
 
   private startLogin(): void {
     this.phase = 'login';
+    const screen = this.createTerminalScreen('RETRO OS / LOGIN', 'Enter  Sign in');
 
     this.prompt.open({
       label: 'login:',
       maxLength: 12,
-      placeholder: '_',
+      terminal: true,
     }).then((result) => {
+      screen.destroy();
+      this.input.keyboard?.resetKeys();
       this.playerName = (result ?? 'Player').trim() || 'Player';
       setPlayerName(this, this.playerName);
 
@@ -530,7 +552,7 @@ export default class CliLevelScene extends BaseLevelScene {
     // Spawn position: random x within camera view, above camera top
     const cam = this.cameras.main;
     const spawnX = cam.scrollX + 50 + Math.random() * (cam.width - 100);
-    const spawnY = cam.scrollY - 40;
+    const spawnY = Math.max(SAFE_TOP, cam.scrollY - 40);
 
     const text = this.add.text(spawnX, spawnY, letter, {
       fontSize: '20px',
@@ -632,20 +654,16 @@ export default class CliLevelScene extends BaseLevelScene {
     }).join(' ');
 
     this.hud.setLeft(`> ${display}`);
+    const collected = this.letterSlots.filter((slot) => slot.filled).length;
+    const ready = collected === TARGET_WORD.length;
+    this.exitStatus.setText(ready ? '[ E ] Open terminal' : `[ LOCKED ]  ${collected}/${TARGET_WORD.length}`);
+    this.exitStatus.setColor(ready ? '#b0ffbf' : '#83ae8b');
+    this.exitFrame.setStrokeStyle(ready ? 2 : 1, ready ? 0x52e477 : 0x2c6840);
   }
 
   private onAllLettersCollected(): void {
     this.helper.say('"start"... wait, that\'s half a command. startx boots the graphical desktop! Get to the prompt — top right.', {
       holdMs: 8000,
-    });
-
-    // Glow the exit prompt
-    this.tweens.add({
-      targets: this.exitPrompt,
-      alpha: 0.5,
-      duration: 300,
-      yoyo: true,
-      repeat: -1,
     });
   }
 
@@ -670,7 +688,8 @@ export default class CliLevelScene extends BaseLevelScene {
 
     // Spawn at screen edge
     const spawnX = direction === 1 ? cam.scrollX - 100 : cam.scrollX + cam.width + 100;
-    const spawnY = cam.scrollY + 50 + Math.random() * (cam.height - 100);
+    const minY = Math.max(SAFE_TOP + 18, cam.scrollY + 62);
+    const spawnY = Phaser.Math.Between(minY, cam.scrollY + cam.height - 90);
 
     const bulletText = this.add.text(spawnX, spawnY, text, {
       fontSize: '16px',
@@ -687,7 +706,6 @@ export default class CliLevelScene extends BaseLevelScene {
       fontFamily: 'monospace',
     });
     warning.setOrigin(direction === 1 ? 0 : 1, 0.5);
-    warning.setScrollFactor(0);
 
     // Blink warning
     this.tweens.add({
@@ -761,7 +779,7 @@ export default class CliLevelScene extends BaseLevelScene {
 
     // Rise at 14 px/s
     const riseAmount = 14 * (delta / 1000);
-    this.floodY -= riseAmount;
+    this.floodY = Math.max(SAFE_TOP + 200, this.floodY - riseAmount);
 
     // Update flood rows
     for (let i = 0; i < this.floodRows.length; i++) {
@@ -885,49 +903,20 @@ export default class CliLevelScene extends BaseLevelScene {
   }
 
   private updateBodyHUD(): void {
-    const deaths = getDeaths(this);
-
-    // Build mini body display matching loss order
-    let display = '';
-
-    // Head
-    if (this.partsLost < 6) display += ' O\n';
-    else display += '   \n';
-
-    // Middle row: left arm, torso, right arm
-    let middle = '';
-    if (this.partsLost < 4) middle += '/';
-    else middle += ' ';
-    if (this.partsLost < 5) middle += '|';
-    else middle += ' ';
-    if (this.partsLost < 3) middle += '\\';
-    else middle += ' ';
-    display += middle + '\n';
-
-    // Legs: left leg, right leg
-    let legs = '';
-    if (this.partsLost < 2) legs += '/';
-    else legs += ' ';
-    legs += ' ';
-    if (this.partsLost < 1) legs += '\\';
-    else legs += ' ';
-    display += legs;
-
-    display += `\ndeaths: ${deaths}`;
-
-    this.hud.setRight(display);
+    this.hud.setRight(`HP ${6 - this.partsLost}/6   deaths ${getDeaths(this)}`);
   }
 
   private checkCheckpoints(): void {
     for (const cp of this.checkpoints) {
-      if (cp.activated) continue;
-
       const dx = this.player.sprite.x - cp.x;
       const dy = this.player.sprite.y - cp.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
+      cp.text.setVisible(dist < 95);
+      if (cp.activated) continue;
 
       if (dist < 40) {
         cp.activated = true;
+        cp.text.setText('[ saved ]');
         this.setCheckpoint(cp.x, cp.y);
         cp.text.setColor(CLI_GREEN);
         sfx('notify');
@@ -1051,109 +1040,99 @@ export default class CliLevelScene extends BaseLevelScene {
   }
 
   private checkExitPrompt(): void {
-    const dx = this.player.sprite.x - this.exitPromptX;
-    const dy = this.player.sprite.y - this.exitPromptY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist < 60) {
-      // Check if all letters collected
-      if (!this.letterSlots.every((s) => s.filled)) {
-        this.helper.sayOnce('prompt-early', 'Permission denied (collect the command first)');
-        return;
-      }
-
-      // Check for interact key
-      if (this.player.justPressed('interact')) {
-        this.openExitPrompt();
-      }
+    const { x, y } = this.player.sprite;
+    if (Math.abs(x - EXIT_X) > 106 || y < 100 || y > EXIT_FLOOR || !this.player.isOnGround) return;
+    if (!this.player.justPressed('interact')) return;
+    if (this.letterSlots.every((slot) => slot.filled)) {
+      this.openExitPrompt();
+    } else {
+      this.helper.sayOnce('prompt-early', 'Permission denied. Collect the letters in start to unlock the terminal.');
     }
   }
 
+  private createTerminalScreen(title: string, hint: string): Phaser.GameObjects.Container {
+    const panel = this.add.rectangle(400, 300, 680, 376, 0x050e08).setStrokeStyle(1, 0x3f8550);
+    const header = this.add.text(88, 141, title, {
+      fontSize: '17px', color: CLI_GREEN, fontFamily: 'monospace', fontStyle: 'bold',
+    });
+    const footer = this.add.text(88, 446, hint, {
+      fontSize: '15px', color: '#83ae8b', fontFamily: 'monospace',
+    });
+    return this.add.container(0, 0, [
+      this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0x020503).setOrigin(0),
+      panel,
+      header,
+      this.add.rectangle(400, 180, 624, 1, 0x285637),
+      footer,
+    ]).setScrollFactor(0).setDepth(1099);
+  }
+
+  private terminalLine(screen: Phaser.GameObjects.Container, y: number, line: string, color = CLI_GREEN): void {
+    screen.add(this.add.text(88, y, line, { fontSize: '18px', color, fontFamily: 'monospace' }));
+  }
+
   private openExitPrompt(): void {
+    this.phase = 'command';
     this.player.setControlsEnabled(false);
+    this.physics.pause();
 
-    this.prompt.open({
-      label: 'user@retro:~$',
-      maxLength: 20,
-      placeholder: '_',
-    }).then((result) => {
+    const screen = this.createTerminalScreen('RETRO OS / GRAPHICAL SESSION', 'Enter  Run command     Esc  Return');
+    this.terminalLine(screen, 197, 'Type startx to launch Windows XP.', '#83ae8b');
+
+    const returnToGame = () => {
+      screen.destroy();
+      this.input.keyboard?.resetKeys();
+      this.physics.resume();
       this.player.setControlsEnabled(true);
+      this.phase = 'playing';
+    };
 
-      if (result === null) return; // Esc
+    void this.prompt.open({ label: 'user@retro:~$', maxLength: 20, terminal: true }).then((result) => {
+      if (result === null) {
+        returnToGame();
+        return;
+      }
 
       const input = result.trim().toLowerCase();
-
       if (input === 'startx') {
-        this.exitLevel();
+        this.exitLevel(screen);
       } else {
-        // Wrong input
-        const errorMsg = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, `bash: ${input}: command not found`, {
-          fontSize: '16px',
-          color: CLI_GREEN,
-          fontFamily: 'monospace',
+        this.terminalLine(screen, 230, `user@retro:~$ ${input}`);
+        this.terminalLine(screen, 267, `bash: ${input}: command not found`, '#ffd38a');
+        this.time.delayedCall(1100, () => {
+          returnToGame();
+          this.hurtPlayer('typo');
         });
-        errorMsg.setOrigin(0.5);
-        errorMsg.setScrollFactor(0);
-        errorMsg.setDepth(700);
-
-        this.time.delayedCall(2000, () => errorMsg.destroy());
-
-        this.hurtPlayer('typo');
-        this.helper.say('Typo. That\'s a leg.', { holdMs: 3000 });
       }
     });
   }
 
-  private exitLevel(): void {
+  private exitLevel(screen: Phaser.GameObjects.Container): void {
     this.phase = 'exiting';
-    this.player.setControlsEnabled(false);
+    this.terminalLine(screen, 230, 'user@retro:~$ startx');
+    this.terminalLine(screen, 268, '[ OK ] Starting X server');
 
-    // Print exit messages
-    const msg1 = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 - 20, 'Starting X server...', {
-      fontSize: '18px',
-      color: CLI_GREEN,
-      fontFamily: 'monospace',
-    });
-    msg1.setOrigin(0.5);
-    msg1.setScrollFactor(0);
-    msg1.setDepth(800);
-
-    this.time.delayedCall(1000, () => {
-      const msg2 = this.add.text(GAME_WIDTH / 2, GAME_HEIGHT / 2 + 20, 'xinit: connecting to display :0', {
-        fontSize: '18px',
-        color: CLI_GREEN,
-        fontFamily: 'monospace',
-      });
-      msg2.setOrigin(0.5);
-      msg2.setScrollFactor(0);
-      msg2.setDepth(800);
-
+    this.time.delayedCall(780, () => {
+      this.terminalLine(screen, 297, '[ OK ] Connected to display :0');
       sfx('dialup');
-
-      // White out from center
-      this.time.delayedCall(1500, () => {
-        const whiteRect = this.add.rectangle(0, 0, 1, 1, 0xffffff, 0);
-        whiteRect.setScrollFactor(0);
-        whiteRect.setDepth(900);
-        whiteRect.setOrigin(0.5);
-        whiteRect.setPosition(GAME_WIDTH / 2, GAME_HEIGHT / 2);
-
+      this.time.delayedCall(720, () => {
+        const whiteout = this.add.rectangle(0, 0, GAME_WIDTH, GAME_HEIGHT, 0xffffff)
+          .setOrigin(0).setAlpha(0).setScrollFactor(0).setDepth(1200);
         this.tweens.add({
-          targets: whiteRect,
-          width: GAME_WIDTH * 3,
-          height: GAME_HEIGHT * 3,
-          alpha: 1,
-          duration: 500,
-          onComplete: () => {
-            this.completeLevel(SceneKeys.XpDesktop);
-          },
+          targets: whiteout, alpha: 1, duration: 330,
+          onComplete: () => this.completeLevel(SceneKeys.XpDesktop),
         });
       });
     });
   }
 
+  protected handleGlobalKeys(): void {
+    if (this.phase === 'login' || this.phase === 'command' || this.phase === 'exiting') return;
+    super.handleGlobalKeys();
+  }
+
   tick(_time: number, delta: number): void {
-    if (this.phase !== 'playing') return;
+    if (this.phase !== 'playing' || this.physics.world.isPaused) return;
     if (this.prompt.isOpen) return;
 
     // Update body display position

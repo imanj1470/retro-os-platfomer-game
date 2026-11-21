@@ -10,6 +10,8 @@ export class TextPrompt {
   private maxLength = 50;
   private placeholder = '';
   private label = '';
+  private inputX = 0;
+  private inputY = 0;
   private resolve: ((value: string | null) => void) | null = null;
 
   private bgBox: Phaser.GameObjects.Graphics;
@@ -19,6 +21,7 @@ export class TextPrompt {
   private caretTween?: Phaser.Tweens.Tween;
 
   private keyHandler: (event: KeyboardEvent) => void;
+  private readonly handledKeys = new WeakSet<KeyboardEvent>();
 
   constructor(scene: Phaser.Scene, skin: HelperSkin) {
     this.scene = scene;
@@ -95,6 +98,7 @@ export class TextPrompt {
     label: string;
     maxLength?: number;
     placeholder?: string;
+    terminal?: boolean;
   }): Promise<string | null> {
     return new Promise((resolve) => {
       this._isOpen = true;
@@ -106,11 +110,20 @@ export class TextPrompt {
 
       // Draw background
       this.bgBox.clear();
-      this.bgBox.fillStyle(0x000000, 0.85);
-      this.bgBox.fillRect(0, 0, this.scene.scale.width, this.scene.scale.height);
+      if (!opts.terminal) {
+        this.bgBox.fillStyle(0x000000, 0.85);
+        this.bgBox.fillRect(0, 0, this.scene.scale.width, this.scene.scale.height);
+      }
 
-      // Set label
-      this.labelText.setText(opts.label);
+      const centerX = this.scene.scale.width / 2;
+      const centerY = this.scene.scale.height / 2;
+      this.labelText.setText(opts.label).setOrigin(opts.terminal ? 0 : 0.5, 0)
+        .setPosition(opts.terminal ? 88 : centerX, opts.terminal ? 230 : centerY - 40)
+        .setFontSize(opts.terminal ? 20 : 18).setColor(opts.terminal ? '#75cf88' : '#aaaaaa');
+      this.inputX = opts.terminal ? this.labelText.x + this.labelText.width + 12 : centerX - 120;
+      this.inputY = opts.terminal ? 229 : centerY;
+      this.inputText.setPosition(this.inputX, this.inputY).setColor(opts.terminal ? '#b0ffbf' : '#ffffff');
+      this.caret.setColor(opts.terminal ? '#75cf88' : '#ffffff');
 
       // Update display
       this.updateDisplay();
@@ -131,7 +144,8 @@ export class TextPrompt {
   }
 
   private onKey(event: KeyboardEvent): void {
-    if (!this.isOpen) return;
+    if (!this.isOpen || this.handledKeys.has(event)) return;
+    this.handledKeys.add(event);
 
     const key = event.key;
 
@@ -168,10 +182,7 @@ export class TextPrompt {
 
     // Position caret after text
     const textWidth = this.inputText.getBounds().width;
-    this.caret.setPosition(
-      this.scene.scale.width / 2 - 120 + textWidth,
-      this.scene.scale.height / 2,
-    );
+    this.caret.setPosition(this.inputX + textWidth, this.inputY);
   }
 
   private close(value: string | null): void {

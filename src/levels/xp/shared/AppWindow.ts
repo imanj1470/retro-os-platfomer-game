@@ -1,319 +1,164 @@
-import Phaser from 'phaser';
+﻿import Phaser from 'phaser';
 import { sfx } from '../../../core/sfx';
+import { oneWay, solid } from './XpScene';
+
+const TITLE_HEIGHT = 30;
+const EXIT_WIDTH = 92;
 
 export interface AppWindowConfig {
   x: number;
   y: number;
-  w: number;
-  h: number;
+  width: number;
+  height: number;
   title: string;
-  closeInMs: number;
-  entry: 'trap' | 'door';
-  insideIcons?: { x: number; y: number; w: number; h: number }[];
+  texture?: string;
+  expansion?: number;
 }
 
 export class AppWindow {
-  private scene: Phaser.Scene;
-  private container: Phaser.GameObjects.Container;
-  private titleBar: Phaser.GameObjects.Graphics;
-  private clientArea: Phaser.GameObjects.Graphics;
-  private titleText: Phaser.GameObjects.Text;
-  private countdownText: Phaser.GameObjects.Text;
-  private leftWall: Phaser.Physics.Arcade.Sprite;
-  private rightWall: Phaser.Physics.Arcade.Sprite;
-  private bottomWall: Phaser.Physics.Arcade.Sprite;
-  private insidePlatforms: Phaser.Physics.Arcade.StaticGroup;
-  private countdownTimer: Phaser.Time.TimerEvent | null = null;
-  private isClosed = false;
-  private hasPlayerInside = false;
-  private config: AppWindowConfig;
-
-  // For pushable wall (window 3)
-  private pushableRightWall = false;
-  private pushOffset = 0;
-  private maxPushOffset = 260;
-  private hiddenIcons: Phaser.Physics.Arcade.Sprite[] = [];
+  private readonly frame: Phaser.GameObjects.Graphics;
+  private readonly view: Phaser.GameObjects.Container;
+  private readonly status: Phaser.GameObjects.Text;
+  private readonly closeButton: Phaser.GameObjects.Text;
+  private readonly bodies: ReturnType<typeof solid>[] = [];
+  private readonly colliders: Phaser.Physics.Arcade.Collider[] = [];
+  private movingEdges: ReturnType<typeof solid>[] = [];
+  private width: number;
+  private expanded = false;
+  private readonly scene: Phaser.Scene;
+  readonly config: AppWindowConfig;
 
   constructor(scene: Phaser.Scene, config: AppWindowConfig) {
     this.scene = scene;
     this.config = config;
-
-    // Container at window position
-    this.container = scene.add.container(config.x, config.y);
-
-    // Client area (beige)
-    this.clientArea = scene.add.graphics();
-    this.clientArea.fillStyle(0xf5f5dc, 1);
-    this.clientArea.fillRect(0, 28, config.w, config.h - 28);
-    this.container.add(this.clientArea);
-
-    // Title bar (blue gradient)
-    this.titleBar = scene.add.graphics();
-    this.titleBar.fillStyle(0x0055cc, 1);
-    this.titleBar.fillRect(0, 0, config.w, 28);
-    // Rounded top corners
-    this.titleBar.fillCircle(0, 0, 6);
-    this.titleBar.fillCircle(config.w, 0, 6);
-    this.container.add(this.titleBar);
-
-    // Title text
-    this.titleText = scene.add.text(8, 4, config.title, {
-      fontSize: '14px',
-      color: '#ffffff',
-      fontFamily: 'Tahoma, Arial, sans-serif',
+    this.width = config.width;
+    this.frame = scene.add.graphics();
+    this.status = scene.add.text(0, 6, '', {
+      fontFamily: 'Tahoma', fontSize: '14px', color: '#ffffff',
+    }).setOrigin(1, 0);
+    this.closeButton = scene.add.text(0, 4, '×', {
+      fontFamily: 'Tahoma', fontSize: '18px', fontStyle: 'bold', backgroundColor: '#d84c31',
+      padding: { x: 6, y: 0 },
     });
-    this.container.add(this.titleText);
-
-    // Countdown text (hidden initially)
-    this.countdownText = scene.add.text(config.w - 8, 4, '', {
-      fontSize: '12px',
-      color: '#ffffff',
-      fontFamily: 'Tahoma, Arial, sans-serif',
-    });
-    this.countdownText.setOrigin(1, 0);
-    this.container.add(this.countdownText);
-
-    // Close button (✕)
-    const closeBtn = scene.add.text(config.w - 24, 4, '✕', {
-      fontSize: '14px',
-      color: '#ffffff',
-      fontFamily: 'Tahoma, Arial, sans-serif',
-    });
-    this.container.add(closeBtn);
-
-    // Physics walls (thin static sprites) - create texture if not exists
-    if (!scene.textures.exists('__wall')) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 4;
-      canvas.height = 4;
-      const ctx = canvas.getContext('2d')!;
-      ctx.fillStyle = '#0055cc';
-      ctx.fillRect(0, 0, 4, 4);
-      scene.textures.addCanvas('__wall', canvas);
-    }
-
-    // Left wall
-    this.leftWall = scene.physics.add.staticSprite(2, config.h / 2, '__wall');
-    (this.leftWall.body as Phaser.Physics.Arcade.StaticBody).setSize(4, config.h - 28);
-    (this.leftWall.body as Phaser.Physics.Arcade.StaticBody).setOffset(0, 28);
-    this.container.add(this.leftWall);
-
-    // Right wall
-    this.rightWall = scene.physics.add.staticSprite(config.w - 2, config.h / 2, '__wall');
-    (this.rightWall.body as Phaser.Physics.Arcade.StaticBody).setSize(4, config.h - 28);
-    (this.rightWall.body as Phaser.Physics.Arcade.StaticBody).setOffset(0, 28);
-    this.container.add(this.rightWall);
-
-    // Bottom wall
-    this.bottomWall = scene.physics.add.staticSprite(config.w / 2, config.h - 2, '__wall');
-    (this.bottomWall.body as Phaser.Physics.Arcade.StaticBody).setSize(config.w, 4);
-    (this.bottomWall.body as Phaser.Physics.Arcade.StaticBody).setOffset(0, 0);
-    this.container.add(this.bottomWall);
-
-    // Inside platforms (icon platforms for climbing)
-    this.insidePlatforms = scene.physics.add.staticGroup();
-    if (config.insideIcons) {
-      for (const icon of config.insideIcons) {
-        const platform = this.insidePlatforms.create(
-          icon.x, icon.y, '__wall',
-        ) as Phaser.Physics.Arcade.Sprite;
-        (platform.body as Phaser.Physics.Arcade.StaticBody).setSize(icon.w, icon.h);
-        (platform.body as Phaser.Physics.Arcade.StaticBody).setOffset(0, 0);
-        this.container.add(platform);
-      }
-    }
-
-    // Open animation (scale from 0.2 to 1)
-    this.container.setScale(0.2);
-    this.container.setAlpha(0);
+    this.view = scene.add.container(config.x, config.y, [
+      this.frame,
+      scene.add.text(12, 6, config.title, { fontFamily: 'Tahoma', fontSize: '15px', fontStyle: 'bold' }),
+      this.status,
+      this.closeButton,
+    ]).setDepth(10);
+    this.draw();
+    this.view.setAlpha(0);
+    scene.tweens.add({ targets: this.view, alpha: 1, duration: 150 });
     sfx('windowOpen');
-    scene.tweens.add({
-      targets: this.container,
-      scale: 1,
-      alpha: 1,
-      duration: 180,
-      ease: 'Back.easeOut',
-    });
   }
 
-  public startCountdown(): void {
-    let remaining = Math.ceil(this.config.closeInMs / 1000);
-    this.updateCountdownText(remaining);
+  get right(): number { return this.config.x + this.width; }
+  get top(): number { return this.config.y; }
 
-    this.countdownTimer = this.scene.time.addEvent({
-      delay: 1000,
-      callback: () => {
-        remaining--;
-        this.updateCountdownText(remaining);
-
-        // Flash red in last 3 seconds
-        if (remaining <= 3 && remaining > 0) {
-          this.titleBar.clear();
-          this.titleBar.fillStyle(0xcc0000, 1);
-          this.titleBar.fillRect(0, 0, this.config.w, 28);
-          this.titleBar.fillCircle(0, 0, 6);
-          this.titleBar.fillCircle(this.config.w, 0, 6);
-        }
-
-        if (remaining <= 0) {
-          this.close();
-        }
-      },
-      repeat: this.config.closeInMs / 1000 - 1,
-    });
+  private get opening(): number {
+    return this.width - EXIT_WIDTH - 8;
   }
 
-  private updateCountdownText(remaining: number): void {
-    if (remaining > 0) {
-      this.countdownText.setText(`closing in ${remaining}...`);
+  private draw(): void {
+    const { height, texture, expansion } = this.config;
+    this.frame.clear()
+      .fillStyle(0xfcf8e9).fillRect(0, TITLE_HEIGHT, this.width, height - TITLE_HEIGHT)
+      .lineStyle(4, 0x145bd7).lineBetween(2, TITLE_HEIGHT, 2, height)
+      .lineBetween(this.width - 2, TITLE_HEIGHT, this.width - 2, height)
+      .lineBetween(0, height - 2, this.width, height - 2)
+      .fillStyle(0x145bd7);
+    if (texture && (!expansion || this.expanded)) {
+      this.frame.fillRect(0, 0, this.opening, TITLE_HEIGHT)
+        .fillRect(this.width - 8, 0, 8, TITLE_HEIGHT)
+        .fillStyle(0x368c3a, 0.85).fillRect(this.opening, 0, EXIT_WIDTH, 24);
     } else {
-      this.countdownText.setText('closing!');
+      this.frame.fillRect(0, 0, this.width, TITLE_HEIGHT);
+    }
+    this.status.setX(texture ? this.opening - 8 : this.width - 38);
+    this.closeButton.setX(texture ? this.opening + 64 : this.width - 29);
+  }
+
+  setStatus(text: string, urgent = false): void {
+    this.status.setText(text).setColor(urgent ? '#ffdd83' : '#ffffff');
+  }
+
+  pulse(strength: number): void {
+    this.frame.setAlpha(strength);
+  }
+
+  closeNow(body: Phaser.Physics.Arcade.Body): boolean {
+    const caught = body.left >= this.config.x && body.right <= this.right &&
+      body.top >= this.top && body.bottom <= this.top + this.config.height;
+    this.close();
+    return caught;
+  }
+
+  confine(player: Phaser.Physics.Arcade.Sprite): void {
+    const { x, y, width, height } = this.config;
+    this.addWall(player, x, y, 8, height);
+    this.updateEdges(player);
+    this.addIcon(player, 72, height - 82, 'Recent files');
+    this.addIcon(player, width - 82, height - 166, 'Documents');
+    if (this.config.expansion) {
+      this.addIcon(player, 130, height - 250, 'Templates');
+    } else {
+      this.addIcon(player, width - 53, height - 250, 'Exit ↑');
     }
   }
 
-  public close(): void {
-    if (this.isClosed) return;
-    this.isClosed = true;
+  tryExpand(player: Phaser.Physics.Arcade.Sprite, delta: number): void {
+    const { width, expansion, y, height } = this.config;
+    const body = player.body as Phaser.Physics.Arcade.Body;
+    if (!expansion || this.expanded || body.velocity.x <= 0 ||
+      body.right < this.right - 13 || player.y < y + TITLE_HEIGHT || player.y > y + height) return;
 
-    if (this.countdownTimer) {
-      this.countdownTimer.remove();
-      this.countdownTimer = null;
+    this.width = Math.min(width + expansion, this.width + delta * 0.13);
+    this.expanded = this.width >= width + expansion;
+    this.draw();
+    this.updateEdges(player);
+    if (this.expanded) this.addIcon(player, this.width - 54, height - 250, 'Exit ↑');
+  }
+
+  private addWall(player: Phaser.Physics.Arcade.Sprite, x: number, y: number, w: number, h: number) {
+    const edge = solid(this.scene, x, y, w, h);
+    this.bodies.push(edge);
+    this.colliders.push(this.scene.physics.add.collider(player, edge));
+    return edge;
+  }
+
+  private updateEdges(player: Phaser.Physics.Arcade.Sprite): void {
+    for (const edge of this.movingEdges) {
+      const index = this.bodies.indexOf(edge);
+      this.colliders.splice(index, 1)[0].destroy();
+      this.bodies.splice(index, 1)[0].destroy();
     }
 
+    const { x, y, height, expansion } = this.config;
+    this.movingEdges = [
+      this.addWall(player, this.right - 8, y, 8, height),
+      this.addWall(player, x, y + height - 8, this.width, 8),
+      this.addWall(player, x, y, expansion && !this.expanded ? this.width : this.opening, TITLE_HEIGHT),
+    ];
+  }
+
+  private addIcon(player: Phaser.Physics.Arcade.Sprite, x: number, y: number, label: string): void {
+    const { platform, collider } = oneWay(this.scene, player, this.config.x + x - 32, this.top + y, 64);
+    this.bodies.push(platform);
+    this.colliders.push(collider);
+    this.view.add([
+      this.scene.add.image(x, y + 13, this.config.texture!).setDisplaySize(32, 32),
+      this.scene.add.text(x, y + 29, label, {
+        fontFamily: 'Tahoma', fontSize: '12px', color: '#203660',
+      }).setOrigin(0.5, 0),
+    ]);
+  }
+
+  close(): void {
+    for (const collider of this.colliders) collider.destroy();
+    for (const body of this.bodies) body.destroy();
     sfx('windowClose');
-
-    // Shrink to ✕ button
-    this.scene.tweens.add({
-      targets: this.container,
-      scale: 0.1,
-      alpha: 0,
-      duration: 300,
-      onComplete: () => {
-        this.container.destroy();
-      },
-    });
-  }
-
-  public closeNow(): Promise<boolean> {
-    return new Promise((resolve) => {
-      this.scene.tweens.add({
-        targets: this.container,
-        scale: 0.1,
-        alpha: 0,
-        duration: 300,
-        onComplete: () => {
-          this.container.destroy();
-          resolve(this.hasPlayerInside);
-        },
-      });
-      this.isClosed = true;
-      if (this.countdownTimer) {
-        this.countdownTimer.remove();
-        this.countdownTimer = null;
-      }
-      sfx('windowClose');
-    });
-  }
-
-  public contains(body: Phaser.Physics.Arcade.Body): boolean {
-    const wx = body.x;
-    const wy = body.y;
-    const winX = this.config.x;
-    const winY = this.config.y;
-    const winW = this.config.w + this.pushOffset;
-    const winH = this.config.h;
-
-    // Exit gap is on the title bar (top), roughly in the middle
-    const gapStart = winX + winW / 2 - 45;
-    const gapEnd = winX + winW / 2 + 45;
-
-    return (
-      wx > winX + 4 &&
-      wx < winX + winW - 4 &&
-      wy > winY + 28 &&
-      wy < winY + winH &&
-      !(wy < winY + 28 && wx > gapStart && wx < gapEnd)
-    );
-  }
-
-  public setPlayerInside(inside: boolean): void {
-    this.hasPlayerInside = inside;
-  }
-
-  public get hasPlayerInsideNow(): boolean {
-    return this.hasPlayerInside;
-  }
-
-  public get isClosedNow(): boolean {
-    return this.isClosed;
-  }
-
-  public get configRef(): AppWindowConfig {
-    return this.config;
-  }
-
-  public enablePushableWall(): void {
-    this.pushableRightWall = true;
-  }
-
-  public tryPushWall(playerX: number, playerVelocityX: number): void {
-    if (!this.pushableRightWall || this.pushOffset >= this.maxPushOffset) return;
-
-    // Check if player is blocked against the right wall
-    const rightWallX = this.config.x + this.config.w + this.pushOffset;
-    if (
-      playerX > rightWallX - 20 &&
-      playerX < rightWallX + 5 &&
-      playerVelocityX > 0
-    ) {
-      this.pushOffset = Math.min(this.pushOffset + 1, this.maxPushOffset);
-      this.updateWallPositions();
-    }
-  }
-
-  private updateWallPositions(): void {
-    const w = this.config.w + this.pushOffset;
-
-    // Reposition right wall
-    this.rightWall.setPosition(w - 2, this.config.h / 2);
-
-    // Reposition bottom wall
-    this.bottomWall.setPosition(w / 2, this.config.h - 2);
-    (this.bottomWall.body as Phaser.Physics.Arcade.StaticBody).setSize(w, 4);
-
-    // Redraw client area
-    this.clientArea.clear();
-    this.clientArea.fillStyle(0xf5f5dc, 1);
-    this.clientArea.fillRect(0, 28, w, this.config.h - 28);
-
-    // Redraw title bar
-    this.titleBar.clear();
-    this.titleBar.fillStyle(0x0055cc, 1);
-    this.titleBar.fillRect(0, 0, w, 28);
-    this.titleBar.fillCircle(0, 0, 6);
-    this.titleBar.fillCircle(w, 0, 6);
-
-    // Reposition countdown
-    this.countdownText.setPosition(w - 8, 4);
-
-    // Reveal hidden icons
-    for (const icon of this.hiddenIcons) {
-      icon.setVisible(this.pushOffset > 100);
-    }
-  }
-
-  public addHiddenIcon(x: number, y: number, w: number, h: number): void {
-    const icon = this.scene.physics.add.staticSprite(x, y, '__wall');
-    (icon.body as Phaser.Physics.Arcade.StaticBody).setSize(w, h);
-    icon.setVisible(false);
-    this.container.add(icon);
-    this.hiddenIcons.push(icon);
-  }
-
-  public destroy(): void {
-    if (this.countdownTimer) {
-      this.countdownTimer.remove();
-    }
-    this.container.destroy();
+    this.scene.tweens.killTweensOf(this.view);
+    this.scene.tweens.add({ targets: this.view, alpha: 0, scale: 0.93, duration: 220,
+      onComplete: () => this.view.destroy() });
   }
 }

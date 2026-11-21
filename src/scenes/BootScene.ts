@@ -39,10 +39,12 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('goal', 'assets/goal.png');
     this.load.image('windowsxp-bg', 'assets/windowsXP.jpg');
     this.load.image('xpprompts', 'assets/xpPrompts.png');
+    this.load.image('xp-cursor', 'assets/cursor-icon-pointer-cursor-finger-pointer-png.webp');
     this.load.image('xp-word', 'assets/word.webp');
     this.load.image('xp-excel', 'assets/excel.webp');
     this.load.image('xp-ppt', 'assets/ppt.webp');
     this.load.image('xp-mail', 'assets/mail.webp');
+    this.load.svg('xp-jumping-clippy', 'assets/Jumping%20Clippy.svg');
   }
 
   create() {
