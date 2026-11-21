@@ -46,7 +46,7 @@ export class PlayerController {
     this.jumpVelocity = opts.jumpVelocity ?? PHYSICS.jumpVelocity;
 
     this.sprite = scene.physics.add.sprite(x, y, opts.texture);
-    this.sprite.setBounce(0.1);
+    this.sprite.setBounce(0);
     this.sprite.setCollideWorldBounds(false);
 
     if (opts.bodySize) {

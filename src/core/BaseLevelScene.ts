@@ -8,6 +8,7 @@ import { getDebugParams } from './debug';
 import { Helper } from './Helper';
 import { HUD } from './HUD';
 import { TextPrompt } from './TextPrompt';
+import { SceneKeys } from './constants';
 
 export abstract class BaseLevelScene extends Phaser.Scene {
   protected abstract readonly levelId: LevelId;
@@ -37,6 +38,8 @@ export abstract class BaseLevelScene extends Phaser.Scene {
     const kb = this.input.keyboard!;
     this._escKey = kb.addKey(27);
     this._mKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.M);
+    this._twoKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+    this._oneKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
   }
 
   protected setupWorld(width: number, height: number, bg: number): void {
@@ -172,10 +175,22 @@ export abstract class BaseLevelScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this._mKey)) {
       toggleMute();
     }
+
+    // Shortcut: press 1 to skip to CLI level (Level 1)
+    if (Phaser.Input.Keyboard.JustDown(this._oneKey)) {
+      this.goTo(SceneKeys.Cli);
+    }
+
+    // Shortcut: press 2 to skip to XP Desktop level
+    if (Phaser.Input.Keyboard.JustDown(this._twoKey)) {
+      this.goTo(SceneKeys.XpDesktop);
+    }
   }
 
   private _escKey!: Phaser.Input.Keyboard.Key;
   private _mKey!: Phaser.Input.Keyboard.Key;
+  private _oneKey!: Phaser.Input.Keyboard.Key;
+  private _twoKey!: Phaser.Input.Keyboard.Key;
 
   protected tick(_time: number, _delta: number): void {
     // Override in subclasses for per-frame logic

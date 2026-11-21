@@ -6,7 +6,7 @@
 | 1 | Foundation (shared core, scene flow, placeholders) | ✅ Done |
 | 1.5 | Fix black screen (19 bug fixes) | ✅ Done |
 | 2 | CLI Level | ✅ Done |
-| 3 | XP desktop | ⬜ Pending |
+| 3 | XP desktop | ✅ Done |
 | 4 | XP boss | ⬜ Pending |
 | 5 | Win10 apps | ⬜ Pending |
 | 6 | Win10 boss + ending | ⬜ Pending |
@@ -100,3 +100,40 @@ Fixed 19 bugs that caused black screen and gameplay issues:
 16. `src/levels/cli/CliLevelScene.ts:1134-1148` — Pause state: uses base class instance field instead of game.registry
 17. `src/levels/cli/CliLevelScene.ts:450-460` — Duplicate login label: removed, TextPrompt handles it
 18. `docs/STAGES.md` — Stage numbering updated to match plan
+
+## Stage 3 Log (2026-11-21)
+
+Implemented the full XP desktop level:
+- `src/levels/xp/shared/AppWindow.ts` — Reusable window class with countdown, walls, exit gap, pushable wall, hidden icons
+- `src/levels/xp/XpDesktopScene.ts` — Complete XP desktop level rewrite
+- World: 2400×1200, horizontal climb from bottom-left to top-right
+- Sky gradient background (#3a6ee8 to #a8d4ff) with parallax hill and clouds
+- Taskbar at bottom with green "start" pill and real-time clock
+- 15 desktop icons as one-way platforms (Wurd, Exsell, PowerPoynt, Outluck, My PC)
+- Pointer enemy: hunts player at 120 px/s, telegraphs with double-blink, traps in AppWindow
+- AppWindow mechanic: 12s countdown, escape through top gap, red flash at 3s
+- 3 notification stacks as climbable ladders (hold ↑/↓ to climb)
+- 6 popup ad spawners that drift toward player and hurt on contact
+- 2 Internet Exploder vanishing platforms (rage traps)
+- Recycle Bin death animation: Floppy shrinks into bin, respawns with full HP
+- HP system: 3 HP shown as floppy icons, onHurt returns 'dead' at 0
+- Level end: 3 camera shakes, BuddyWare.exe popup, transition to XP Boss
+- Helper proximity hints for Wurd, Exsell, Outluck, Recycle Bin, Internet Exploder
+- All XP-era textures generated procedurally (icons, toasts, pointer, popups)
+
+AppWindow API (for Stage 4 boss reuse):
+- `new AppWindow(scene, config)` — creates window with open animation
+- `startCountdown()` — begins countdown timer with red flash
+- `close()` / `closeNow(): Promise<boolean>` — closes window, resolves true if player inside
+- `contains(body): boolean` — checks if body is inside window bounds
+- `setPlayerInside(inside: boolean)` — tracks player presence
+- `enablePushableWall()` / `tryPushWall(playerX, velocityX)` — resizable wall mechanic
+- `addHiddenIcon(x, y, w, h)` — icons revealed when wall is pushed
+- `destroy()` — cleanup
+
+Tuning numbers:
+- Pointer hunt speed: 120 px/s, telegraph distance: 140 px
+- Window countdown: 12s (trap), 15s (gateway)
+- Popup ad interval: 8–11s, despawn after 6s
+- Vanishing platform: 500ms vanish, 3000ms respawn
+- Notification ladder climb speed: 140 px/s (from PlayerController)

@@ -37,6 +37,12 @@ export default class BootScene extends Phaser.Scene {
     this.load.image('collectible', 'assets/collectible.png');
     this.load.image('hazard', 'assets/hazard.png');
     this.load.image('goal', 'assets/goal.png');
+    this.load.image('windowsxp-bg', 'assets/windowsXP.jpg');
+    this.load.image('xpprompts', 'assets/xpPrompts.png');
+    this.load.image('xp-word', 'assets/word.webp');
+    this.load.image('xp-excel', 'assets/excel.webp');
+    this.load.image('xp-ppt', 'assets/ppt.webp');
+    this.load.image('xp-mail', 'assets/mail.webp');
   }
 
   create() {
@@ -119,6 +125,42 @@ export default class BootScene extends Phaser.Scene {
       g.fillStyle(0x333366, 1);
       g.fillRect(4, 44, 8, 4);
       g.fillRect(16, 44, 8, 4);
+    });
+
+    // XP jumping character fallback (in case SVG fails to load)
+    ensureTexture(this, 'xp-jumping-char', 64, 72, (g) => {
+      g.fillStyle(0x4488ff, 1);
+      g.fillRect(16, 16, 32, 36);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(20, 20, 8, 8);
+      g.fillRect(36, 20, 8, 8);
+      g.fillStyle(0x000000, 1);
+      g.fillRect(22, 22, 4, 4);
+      g.fillRect(38, 22, 4, 4);
+      g.fillStyle(0xff6666, 1);
+      g.fillRect(24, 36, 16, 3);
+      // Legs
+      g.fillStyle(0x4488ff, 1);
+      g.fillRect(16, 52, 12, 20);
+      g.fillRect(36, 52, 12, 20);
+    });
+
+    // XP jumping clippy fallback (in case SVG fails to load)
+    ensureTexture(this, 'xp-jumping-clippy', 64, 72, (g) => {
+      g.fillStyle(0xddaa33, 1);
+      g.fillRect(16, 16, 32, 36);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(20, 20, 8, 8);
+      g.fillRect(36, 20, 8, 8);
+      g.fillStyle(0x000000, 1);
+      g.fillRect(22, 22, 4, 4);
+      g.fillRect(38, 22, 4, 4);
+      g.fillStyle(0x336699, 1);
+      g.fillRect(24, 36, 16, 3);
+      // Paperclip shape
+      g.fillStyle(0xddaa33, 1);
+      g.fillRect(16, 52, 12, 20);
+      g.fillRect(36, 52, 12, 20);
     });
   }
 
