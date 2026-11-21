@@ -42,7 +42,8 @@ export class Helper {
     this.createAvatarTexture();
 
     // Container in screen space
-    this.container = scene.add.container(scene.scale.width - 220, scene.scale.height - 100);
+    const boxWidth = 320;
+    this.container = scene.add.container(scene.scale.width - boxWidth - 16, scene.scale.height - 100);
     this.container.setScrollFactor(0);
     this.container.setDepth(900);
 
@@ -54,7 +55,7 @@ export class Helper {
     // Text box background
     this.textBox = scene.add.graphics();
     this.textBox.fillStyle(0x000000, 0.7);
-    this.textBox.fillRect(30, -10, 300, 60);
+    this.textBox.fillRect(30, -10, boxWidth - 30, 60);
     this.container.add(this.textBox);
 
     // Text
@@ -64,7 +65,7 @@ export class Helper {
       fontFamily: 'monospace',
       stroke: '#000000',
       strokeThickness: 3,
-      wordWrap: { width: 290 },
+      wordWrap: { width: boxWidth - 50 },
     });
     this.container.add(this.textObj);
     this.container.setVisible(false);

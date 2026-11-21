@@ -167,12 +167,10 @@ export class PlayerController {
 
   public setClimbing(on: boolean): void {
     this.climbing = on;
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    body.setAllowGravity(!on);
     if (on) {
-      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-      body.setGravityY(0);
-    } else {
-      const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-      body.setGravityY(PHYSICS.gravityY);
+      body.setVelocityY(0);
     }
   }
 

@@ -4,12 +4,13 @@
 |---|---|---|
 | 0 | Fix movement (fix-movement-prompt) | ✅ Done |
 | 1 | Foundation (shared core, scene flow, placeholders) | ✅ Done |
-| 2 | CLI Level | ⬜ Pending |
-| 3 | XP Level | ⬜ Pending |
-| 4 | Win10 Level | ⬜ Pending |
-| 5 | Bosses | ⬜ Pending |
-| 6 | Puzzles & Mini-games | ⬜ Pending |
-| 7 | Polish (demo mode, recording, ?name) | ⬜ Pending |
+| 1.5 | Fix black screen (19 bug fixes) | ✅ Done |
+| 2 | CLI Level | ✅ Done |
+| 3 | XP desktop | ⬜ Pending |
+| 4 | XP boss | ⬜ Pending |
+| 5 | Win10 apps | ⬜ Pending |
+| 6 | Win10 boss + ending | ⬜ Pending |
+| 7 | Integration and polish | ⬜ Pending |
 
 ## Stage 1 Log (2026-11-21)
 
@@ -40,3 +41,62 @@ Created the shared engine architecture:
 - `docs/STAGES.md` — This file
 
 Moved old PlayScene to SandboxScene. Deleted src/game/ directory (files moved to src/core/).
+
+## Stage 2 Log (2026-11-21)
+
+Implemented the full CLI level:
+- `src/levels/cli/CliLevelScene.ts` — Complete rewrite with all MUST features
+- Boot sequence with fake boot lines typed fast, any key skips
+- Login prompt using TextPrompt, saves player name
+- ASCII stick figure player with 6 body parts (head, arms, torso, legs)
+- Body parts lost in order: right leg, left leg, right arm, left arm, torso, head
+- Death animation: figure crumbles into falling characters
+- Respawn restores all 6 body parts, keeps collected letters
+- Falling letters spelling "start" with decoy glyphs (▒ # % ?)
+- Text attacks: SEGFAULT, rm -rf /, ^C, NaN, 404, core dumped
+- Warning ">>" at screen edge 700ms before each bullet
+- Char flood rising at 14 px/s after first letter collected
+- 3 checkpoints at start, ⅓ and ⅔ up
+- Rage trap platform "[ .. ] Waiting for network" with "(Not Responding)"
+- Cage trap at 2 trigger lines, builds over 1.8s, escapable
+- Exit prompt at top-right, requires typing "startx"
+- White-out transition to XP desktop
+- HUD: letter slots on left, body parts + deaths on right
+- Helper messages with sayOnce for first letter, decoy, bullet, cage
+- Events: collect, player-hit, player-death, rage-trap, level-complete
+
+Tuning numbers:
+- World: 800×1800, vertical climb
+- Gravity: 600, jump: −450, move speed: 200
+- Letter spawn: every 2.5s, gravity 120, blink at 5s, remove at 7s
+- Bullet interval: 3s → 1.6s as slots fill
+- Flood rise: 14 px/s, pauses 4s at each checkpoint
+- Cage build: 1.8s (one char every 60ms)
+
+## Fix: Black Screen (2026-11-21)
+
+Fixed 19 bugs that caused black screen and gameplay issues:
+
+**P0 — Crashes:**
+1. `src/core/BaseLevelScene.ts:26-29` — Scene key collision: changed constructor to accept SceneKey, all 7 subclasses now pass their key
+2. `src/levels/cli/CliLevelScene.ts:285-286,342` — Static body setAllowGravity: removed from all static groups (Sandbox, CLI, XP, Win10, VanishingPlatform)
+3. `src/levels/cli/CliLevelScene.ts:527-534` — Falling letters crash: replaced `add.existing(text, true)` with dynamic body + setAccelerationY
+4. `src/levels/xp/XpDesktopScene.ts`, `XpBossScene.ts`, `Win10HubScene.ts`, `Win10BossScene.ts`, `EndingScene.ts` — Added missing `import Phaser from 'phaser'`
+
+**P1 — Gameplay:**
+5. `src/levels/cli/CliLevelScene.ts:373-431` — Boot sequence invisible: added screen-space backdrop, scrollFactor(0) on boot texts, any key skips
+6. `src/levels/cli/CliLevelScene.ts:456` — Enter detection: replaced polling timer with `once('keydown-ENTER')`
+7. `src/levels/cli/CliLevelScene.ts:148-159` — Exit prompt: made world object with setOrigin(1,0) at x=780
+8. `src/core/Helper.ts:45-71` — Helper overflow: fixed box width to 320, proper positioning
+9. `src/core/BaseLevelScene.ts:140-149` — Base update: passes delta (not time) to player.update, uses world bounds for fall death
+10. `src/core/BaseLevelScene.ts:154-172` — Keys created every frame: moved to init(), shared handleGlobalKeys()
+11. `src/core/PlayerController.ts:168-175` — Climbing gravity: uses setAllowGravity instead of setGravityY
+12. `src/scenes/BootScene.ts:60-122` — Era textures moved to BootScene so direct-entry works
+13. `src/core/debug.ts:13-28` — Debug aliases: accepts sandbox, cli, xp, xpboss, win10, win10boss, ending (case-insensitive)
+14. `src/levels/EndingScene.ts:23` — No player spawned in ending scene
+
+**P2 — Hygiene:**
+15. `src/core/sfx.ts:27-42` — Audio autoplay: AudioContext created on unlock, not on first sfx() call
+16. `src/levels/cli/CliLevelScene.ts:1134-1148` — Pause state: uses base class instance field instead of game.registry
+17. `src/levels/cli/CliLevelScene.ts:450-460` — Duplicate login label: removed, TextPrompt handles it
+18. `docs/STAGES.md` — Stage numbering updated to match plan

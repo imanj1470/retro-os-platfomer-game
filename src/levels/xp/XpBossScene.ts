@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { BaseLevelScene } from '../../core/BaseLevelScene';
 import { SceneKeys, GAME_WIDTH, GAME_HEIGHT, TILE_SIZE } from '../../core/constants';
 import { Helper } from '../../core/Helper';
@@ -6,10 +7,9 @@ import { TextPrompt } from '../../core/TextPrompt';
 
 export default class XpBossScene extends BaseLevelScene {
   protected readonly levelId = 'xp' as const;
-  protected readonly sceneKey = SceneKeys.XpBoss;
 
   constructor() {
-    super();
+    super(SceneKeys.XpBoss);
   }
 
   create(): void {
@@ -25,10 +25,7 @@ export default class XpBossScene extends BaseLevelScene {
     // Ground strip
     const platforms = this.physics.add.staticGroup();
     for (let x = 0; x < 25; x++) {
-      const tile = platforms.create(x * TILE_SIZE, GAME_HEIGHT - TILE_SIZE, 'ground-xp') as Phaser.Physics.Arcade.Sprite;
-      tile.setImmovable(true);
-      (tile.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-      tile.refreshBody();
+      platforms.create(x * TILE_SIZE, GAME_HEIGHT - TILE_SIZE, 'ground-xp');
     }
     this.physics.add.collider(this.player.sprite, platforms);
 
@@ -48,8 +45,7 @@ export default class XpBossScene extends BaseLevelScene {
   tick(_time: number, _delta: number): void {
     this.helper.update(this.player.sprite.x, this.player.sprite.y);
 
-    const enterKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-    if (Phaser.Input.Keyboard.JustDown(enterKey)) {
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
       this.completeLevel(SceneKeys.Win10Hub);
     }
   }

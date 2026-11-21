@@ -8,10 +8,9 @@ import { createVanishingPlatform } from '../../core/VanishingPlatform';
 
 export default class SandboxScene extends BaseLevelScene {
   protected readonly levelId = 'cli' as const;
-  protected readonly sceneKey = SceneKeys.Sandbox;
 
   constructor() {
-    super();
+    super(SceneKeys.Sandbox);
   }
 
   create(): void {
@@ -31,10 +30,7 @@ export default class SandboxScene extends BaseLevelScene {
 
     // Ground
     for (let x = 0; x < 25; x++) {
-      const tile = platforms.create(x * TILE_SIZE, GAME_HEIGHT - TILE_SIZE, 'ground') as Phaser.Physics.Arcade.Sprite;
-      tile.setImmovable(true);
-      (tile.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-      tile.refreshBody();
+      platforms.create(x * TILE_SIZE, GAME_HEIGHT - TILE_SIZE, 'ground');
     }
     // Floating platforms
     const platformPositions = [
@@ -50,10 +46,7 @@ export default class SandboxScene extends BaseLevelScene {
     ];
     for (const p of platformPositions) {
       for (let i = 0; i < p.w; i++) {
-        const tile = platforms.create(p.x + i * TILE_SIZE, p.y, 'ground') as Phaser.Physics.Arcade.Sprite;
-        tile.setImmovable(true);
-        (tile.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-        tile.refreshBody();
+        platforms.create(p.x + i * TILE_SIZE, p.y, 'ground');
       }
     }
 
@@ -65,14 +58,11 @@ export default class SandboxScene extends BaseLevelScene {
     // Hazards
     const hazards = this.physics.add.staticGroup();
     for (let x = 0; x < 2; x++) {
-      const tile = hazards.create(
+      hazards.create(
         700 + x * TILE_SIZE,
         GAME_HEIGHT - TILE_SIZE * 2,
         'hazard',
-      ) as Phaser.Physics.Arcade.Sprite;
-      tile.setImmovable(true);
-      (tile.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-      tile.refreshBody();
+      );
     }
 
     // Goal
@@ -100,8 +90,7 @@ export default class SandboxScene extends BaseLevelScene {
     this.helper.update(this.player.sprite.x, this.player.sprite.y);
 
     // T key opens text prompt
-    const tKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T);
-    if (Phaser.Input.Keyboard.JustDown(tKey) && !this.prompt.isOpen) {
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T)) && !this.prompt.isOpen) {
       this.prompt.open({ label: 'Type something:', maxLength: 50 }).then((result) => {
         if (result) {
           this.helper.say(`You typed: ${result}`);
@@ -110,8 +99,7 @@ export default class SandboxScene extends BaseLevelScene {
     }
 
     // Enter to advance to next level
-    const enterKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-    if (Phaser.Input.Keyboard.JustDown(enterKey)) {
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
       this.completeLevel(SceneKeys.Cli);
     }
   }

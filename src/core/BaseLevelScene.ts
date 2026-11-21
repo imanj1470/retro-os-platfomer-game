@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import type { LevelId, SceneKey } from './constants';
-import { GAME_HEIGHT } from './constants';
 import { PlayerController, type PlayerOptions } from './PlayerController';
 import { emitGame } from './events';
 import { addDeath } from './state';
@@ -12,7 +11,6 @@ import { TextPrompt } from './TextPrompt';
 
 export abstract class BaseLevelScene extends Phaser.Scene {
   protected abstract readonly levelId: LevelId;
-  protected abstract readonly sceneKey: SceneKey;
   protected player!: PlayerController;
   protected helper!: Helper;
   protected hud!: HUD;
@@ -25,12 +23,20 @@ export abstract class BaseLevelScene extends Phaser.Scene {
   private isInvulnerable = false;
   private godMode = false;
 
-  constructor() {
-    super({ key: '' });
+  constructor(key: SceneKey) {
+    super({ key });
+    this._sceneKey = key;
   }
+
+  protected readonly _sceneKey!: SceneKey;
+  public get sceneKey(): SceneKey { return this._sceneKey; }
 
   init(): void {
     this.godMode = getDebugParams().godMode;
+    // Initialize keys once per scene
+    const kb = this.input.keyboard!;
+    this._escKey = kb.addKey(27);
+    this._mKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.M);
   }
 
   protected setupWorld(width: number, height: number, bg: number): void {
@@ -113,7 +119,9 @@ export abstract class BaseLevelScene extends Phaser.Scene {
   protected goTo(key: SceneKey, data?: object): void {
     if (this.isFading) return;
     this.isFading = true;
-    this.player.setControlsEnabled(false);
+    if (this.player) {
+      this.player.setControlsEnabled(false);
+    }
 
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.time.delayedCall(400, () => {
@@ -127,9 +135,30 @@ export abstract class BaseLevelScene extends Phaser.Scene {
   }
 
   update(_time: number, _delta: number): void {
-    // Esc pause
-    const escKey = this.input.keyboard!.addKey(27);
-    if (Phaser.Input.Keyboard.JustDown(escKey)) {
+    this.handleGlobalKeys();
+
+    if (this.isPaused) {
+      this.tick(_time, _delta);
+      return;
+    }
+
+    // Skip player update if no player (e.g. EndingScene)
+    if (this.player) {
+      if (!this.prompt.isOpen) {
+        this.player.update(_delta);
+      }
+
+      // Fall death - use world bounds, not GAME_HEIGHT
+      if (this.player.sprite.y > this.physics.world.bounds.bottom + 64) {
+        this.killPlayer('fell');
+      }
+    }
+
+    this.tick(_time, _delta);
+  }
+
+  protected handleGlobalKeys(): void {
+    if (Phaser.Input.Keyboard.JustDown(this._escKey)) {
       this.isPaused = !this.isPaused;
       if (this.isPaused) {
         this.physics.pause();
@@ -140,28 +169,13 @@ export abstract class BaseLevelScene extends Phaser.Scene {
       }
     }
 
-    // M mute
-    const mKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.M);
-    if (Phaser.Input.Keyboard.JustDown(mKey)) {
+    if (Phaser.Input.Keyboard.JustDown(this._mKey)) {
       toggleMute();
     }
-
-    if (this.isPaused) {
-      this.tick(_time, _delta);
-      return;
-    }
-
-    if (!this.prompt.isOpen) {
-      this.player.update(_time);
-    }
-
-    // Fall death
-    if (this.player.sprite.y > GAME_HEIGHT + 64) {
-      this.killPlayer('fell');
-    }
-
-    this.tick(_time, _delta);
   }
+
+  private _escKey!: Phaser.Input.Keyboard.Key;
+  private _mKey!: Phaser.Input.Keyboard.Key;
 
   protected tick(_time: number, _delta: number): void {
     // Override in subclasses for per-frame logic

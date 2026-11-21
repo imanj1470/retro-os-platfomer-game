@@ -26,10 +26,8 @@ export function createVanishingPlatform(
   const respawnMs = opts?.respawnMs ?? 3000;
 
   // Create as a regular sprite in the group so it can be interacted with
-  const sprite = group.create(x, y, texture) as Phaser.Physics.Arcade.Sprite;
-  sprite.setImmovable(true);
-  (sprite.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
-  sprite.refreshBody();
+  group.create(x, y, texture);
+  const sprite = group.getChildren()[group.getChildren().length - 1] as Phaser.Physics.Arcade.Sprite;
 
   let isVanished = false;
   let isTouching = false;

@@ -58,6 +58,8 @@ export default class BootScene extends Phaser.Scene {
   }
 
   private generateEraTextures(): void {
+    const TILE_SIZE = 32;
+
     // Icon generic
     ensureTexture(this, 'icon-generic', 48, 48, (g) => {
       g.fillStyle(0x888888, 1);
@@ -72,6 +74,51 @@ export default class BootScene extends Phaser.Scene {
       g.fillRect(0, 0, 32, 32);
       g.fillStyle(0x666666, 1);
       g.fillRect(4, 4, 24, 24);
+    });
+
+    // XP ground texture
+    ensureTexture(this, 'ground-xp', TILE_SIZE, TILE_SIZE, (g) => {
+      g.fillStyle(0x008080, 1);
+      g.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+      g.fillStyle(0x006060, 1);
+      g.fillRect(0, 0, TILE_SIZE, 2);
+      g.fillRect(0, 0, 2, TILE_SIZE);
+    });
+
+    // Floppy player
+    ensureTexture(this, 'player-floppy', 32, 36, (g) => {
+      g.fillStyle(0x444444, 1);
+      g.fillRect(0, 4, 32, 32);
+      g.fillStyle(0x666666, 1);
+      g.fillRect(4, 0, 24, 8);
+      g.fillStyle(0xffffff, 1);
+      g.fillRect(8, 14, 6, 6);
+      g.fillRect(18, 14, 6, 6);
+      g.fillStyle(0x000000, 1);
+      g.fillRect(10, 16, 3, 3);
+      g.fillRect(20, 16, 3, 3);
+    });
+
+    // Win10 ground texture
+    ensureTexture(this, 'ground-win10', TILE_SIZE, TILE_SIZE, (g) => {
+      g.fillStyle(0x2d2d5e, 1);
+      g.fillRect(0, 0, TILE_SIZE, TILE_SIZE);
+      g.fillStyle(0x3d3d7e, 1);
+      g.fillRect(0, 0, TILE_SIZE, 2);
+    });
+
+    // Blocky player
+    ensureTexture(this, 'player-blocky', 28, 48, (g) => {
+      g.fillStyle(0xff6600, 1);
+      g.fillRect(0, 16, 28, 32);
+      g.fillStyle(0xffcc99, 1);
+      g.fillRect(4, 0, 20, 18);
+      g.fillStyle(0x000000, 1);
+      g.fillRect(8, 6, 4, 4);
+      g.fillRect(16, 6, 4, 4);
+      g.fillStyle(0x333366, 1);
+      g.fillRect(4, 44, 8, 4);
+      g.fillRect(16, 44, 8, 4);
     });
   }
 

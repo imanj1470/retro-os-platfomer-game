@@ -24,24 +24,21 @@ let destinationNode: MediaStreamAudioDestinationNode | null = null;
 let isMuted = false;
 let isUnlocked = false;
 
-function getAudioCtx(): AudioContext {
-  if (!audioCtx) {
-    audioCtx = new AudioContext();
-    masterGain = audioCtx.createGain();
-    destinationNode = audioCtx.createMediaStreamDestination();
-    masterGain.connect(audioCtx.destination);
-    masterGain.connect(destinationNode);
-  }
+function getAudioCtx(): AudioContext | null {
   return audioCtx;
 }
 
 function unlock(): void {
   if (isUnlocked) return;
-  const ctx = getAudioCtx();
-  if (ctx.state === 'suspended') {
-    ctx.resume();
-  }
   isUnlocked = true;
+  audioCtx = new AudioContext();
+  masterGain = audioCtx.createGain();
+  destinationNode = audioCtx.createMediaStreamDestination();
+  masterGain.connect(audioCtx.destination);
+  masterGain.connect(destinationNode);
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
 }
 
 // Unlock on first interaction
@@ -50,8 +47,9 @@ document.addEventListener('pointerdown', unlock, { once: true });
 
 export function toggleMute(): void {
   isMuted = !isMuted;
-  if (masterGain) {
-    masterGain.gain.setValueAtTime(isMuted ? 0 : 1, getAudioCtx().currentTime);
+  const ctx = getAudioCtx();
+  if (masterGain && ctx) {
+    masterGain.gain.setValueAtTime(isMuted ? 0 : 1, ctx.currentTime);
   }
 }
 
@@ -65,6 +63,7 @@ function randomPitch(): number {
 
 export function sfx(name: SfxName, opts?: { pitch?: number; volume?: number }): void {
   const ctx = getAudioCtx();
+  if (!ctx || !masterGain) return; // Not unlocked yet
   const now = ctx.currentTime;
   const vol = opts?.volume ?? 0.3;
   const pitch = opts?.pitch ?? randomPitch();
@@ -72,7 +71,7 @@ export function sfx(name: SfxName, opts?: { pitch?: number; volume?: number }): 
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
   osc.connect(gain);
-  gain.connect(masterGain!);
+  gain.connect(masterGain);
 
   switch (name) {
     case 'jump':

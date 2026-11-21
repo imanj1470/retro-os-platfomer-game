@@ -1,3 +1,4 @@
+import Phaser from 'phaser';
 import { BaseLevelScene } from '../core/BaseLevelScene';
 import { SceneKeys, GAME_WIDTH, GAME_HEIGHT } from '../core/constants';
 import { Helper } from '../core/Helper';
@@ -7,10 +8,9 @@ import { getDeaths } from '../core/state';
 
 export default class EndingScene extends BaseLevelScene {
   protected readonly levelId = 'win10' as const;
-  protected readonly sceneKey = SceneKeys.Ending;
 
   constructor() {
-    super();
+    super(SceneKeys.Ending);
   }
 
   create(): void {
@@ -20,9 +20,7 @@ export default class EndingScene extends BaseLevelScene {
     this.hud = new HUD(this);
     this.prompt = new TextPrompt(this, 'win10');
 
-    // No player needed for ending
-    this.spawnPlayer(GAME_WIDTH / 2, GAME_HEIGHT / 2, { texture: 'player-blocky' });
-    this.player.setControlsEnabled(false);
+    // No player needed for ending - don't spawn one
 
     // Title
     this.add.text(GAME_WIDTH / 2, 150, 'THANKS FOR PLAYING', {
@@ -52,8 +50,7 @@ export default class EndingScene extends BaseLevelScene {
   }
 
   tick(_time: number, _delta: number): void {
-    const enterKey = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
-    if (Phaser.Input.Keyboard.JustDown(enterKey)) {
+    if (Phaser.Input.Keyboard.JustDown(this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER))) {
       this.goTo(SceneKeys.Cli);
     }
   }
