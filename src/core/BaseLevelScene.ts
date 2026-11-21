@@ -42,6 +42,7 @@ export abstract class BaseLevelScene extends Phaser.Scene {
     this._escKey = kb.addKey(27);
     this._mKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.M);
     this._twoKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.TWO);
+    this._threeKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.THREE);
     this._oneKey = kb.addKey(Phaser.Input.Keyboard.KeyCodes.ONE);
   }
 
@@ -197,12 +198,17 @@ export abstract class BaseLevelScene extends Phaser.Scene {
     if (Phaser.Input.Keyboard.JustDown(this._twoKey)) {
       this.goTo(SceneKeys.XpDesktop);
     }
+
+    if (Phaser.Input.Keyboard.JustDown(this._threeKey)) {
+      this.goTo(SceneKeys.Win10Hub);
+    }
   }
 
   private _escKey!: Phaser.Input.Keyboard.Key;
   private _mKey!: Phaser.Input.Keyboard.Key;
   private _oneKey!: Phaser.Input.Keyboard.Key;
   private _twoKey!: Phaser.Input.Keyboard.Key;
+  private _threeKey!: Phaser.Input.Keyboard.Key;
 
   protected tick(_time: number, _delta: number): void {
     // Override in subclasses for per-frame logic

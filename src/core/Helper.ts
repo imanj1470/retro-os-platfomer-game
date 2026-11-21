@@ -60,7 +60,7 @@ export class Helper {
 
     // Text
     this.textObj = scene.add.text(35, -5, '', {
-      fontSize: skin === 'cli' ? '15px' : '22px',
+      fontSize: skin === 'win10' ? '22px' : '15px',
       color: '#ffffff',
       fontFamily: 'monospace',
       stroke: '#000000',
@@ -130,6 +130,10 @@ export class Helper {
     if (this.saidIds.has(id)) return;
     this.saidIds.add(id);
     this.say(text, { id });
+  }
+
+  public get isIdle(): boolean {
+    return !this.isProcessing;
   }
 
   public addProximityHint(
